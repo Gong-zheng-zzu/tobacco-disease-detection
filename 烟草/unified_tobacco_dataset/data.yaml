@@ -1,0 +1,17 @@
+# 烟草病害&营养缺乏统一检测数据集
+# 6类: 4病害 + 2营养
+
+path: D:\烟草\烟草\unified_tobacco_dataset
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: baixingbing   # 白星病
+  1: huayebing     # 黄叶病
+  2: yanqingchong  # 烟青虫
+  3: yehuobing     # 叶厚病
+  4: healthy       # 健康
+  5: deficiency_k  # 缺钾
+
+nc: 6

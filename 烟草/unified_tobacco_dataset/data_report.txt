@@ -1,0 +1,36 @@
+============================================================
+Data Agent - 数据集创建报告
+============================================================
+
+总图像数: 4306
+数据集路径: D:\烟草\烟草\unified_tobacco_dataset
+
+类别定义:
+  0: baixingbing
+  1: huayebing
+  2: yanqingchong
+  3: yehuobing
+  4: healthy
+  5: deficiency_k
+
+各split分布:
+
+train: 3014 张
+  - deficiency_k: 783
+  - disease: 2169
+  - healthy: 62
+
+val: 645 张
+  - deficiency_k: 150
+  - disease: 478
+  - healthy: 17
+
+test: 647 张
+  - deficiency_k: 165
+  - disease: 473
+  - healthy: 9
+
+数据清理说明:
+  - 移除增强变体(_blur, _brighter等),仅保留base图像
+  - 修正标签错误: 原'缺磷'数据集实际为缺钾数据
+  - 营养图像使用全图bbox标注(0.5 0.5 1.0 1.0)
