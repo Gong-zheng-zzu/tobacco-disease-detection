@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Django runtime data
+db.sqlite3
+*.sqlite3
+media/*
+staticfiles/
+
+# Node / Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# IDE and OS files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ML checkpoints and generated runs
+*.pt
+*.pth
+*.onnx
+disease/runs/
+模型部署/runs/
+
+# Local datasets, archives, and generated prediction outputs
+*.zip
+*.mp4
+*.pptx
+目标检测图片/
+模型部署数据集/
+完整-目标检测--加密--烟草叶部病害/
+disease/test/
+disease/result/
+
+# Secrets and local environment overrides
+.env
+.env.*
+!.env.example

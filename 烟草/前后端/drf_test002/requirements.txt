@@ -1,0 +1,11 @@
+Django>=4.2
+djangorestframework
+django-cors-headers
+mysqlclient>=2.2.0
+Pillow
+requests
+openai>=1.0.0
+torch
+torchvision
+ultralytics>=8.0.0
+numpy

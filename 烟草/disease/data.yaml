@@ -1,0 +1,16 @@
+# 烟草叶部病害目标检测数据集 - YOLO格式
+# 数据集: 完整-目标检测--加密--烟草叶部病害
+# 请将数据集放在 E:\烟草\完整-目标检测--加密--烟草叶部病害 或修改 path 指向实际路径
+
+path: E:\烟草\完整-目标检测--加密--烟草叶部病害
+train: images/train
+val: images/val
+# 若数据集没有划分，可用全部数据: train: images  val: images
+
+names:
+  0: baixingbing   # 白星病
+  1: huayebing     # 黄叶病
+  2: yanqingchong  # 烟青虫
+  3: yehuobing     # 叶厚病
+
+nc: 4

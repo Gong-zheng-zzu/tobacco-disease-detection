@@ -1,0 +1,17 @@
+---
+description: 修改 tobacco 前端后构建并同步到 app-release（云打包）
+alwaysApply: true
+---
+
+# app-release 同步
+
+用户用 **app-release** 做云打包，入口为 `app-release/dist/index.html`。
+
+在修改 **`app/true/tobacco`** 下前端源码（Vue、资源、配置等）并准备交付或打包时，**默认在任务末尾**执行：
+
+1. 在 `app/true/tobacco` 目录运行：`npm run build`
+2. 将 `app/true/tobacco/dist/` 下的全部内容 **覆盖复制** 到 `app-release/dist/`（可先清空 `app-release/dist` 再复制，避免残留旧 hash 资源）
+
+若用户明确说「不要同步」「只改源码」则可跳过。
+
+后端地址变更时仍按 `app-release/README.txt`：改 `.env.production` 的 `VITE_API_HOST` 后再构建并同步。
