@@ -65,7 +65,7 @@ def _get_unified_model():
     return _UNIFIED_MODEL
 
 
-def _run_unified_detection(image_source, conf_threshold=0.25):
+def _run_unified_detection(image_source, conf_threshold=0.35):
     """
     执行统一检测（病害+健康+缺钾）
     返回: (result_dict, error_msg)
@@ -95,8 +95,17 @@ def _run_unified_detection(image_source, conf_threshold=0.25):
         else:
             img = image_source
 
-        # 运行推理
-        results = model.predict(source=img, conf=conf_threshold, verbose=False)
+        # 运行推理 - 优化后处理参数
+        # conf=0.35: 提高置信度阈值，减少误报
+        # iou=0.4: 降低IoU阈值，允许重叠检测（适合小目标聚集）
+        # agnostic_nms=True: 跨类别NMS，减少白星病-花叶病重复检测
+        results = model.predict(
+            source=img,
+            conf=conf_threshold,
+            iou=0.4,
+            agnostic_nms=True,
+            verbose=False
+        )
 
         detected_classes = set()
         confidences = {}
