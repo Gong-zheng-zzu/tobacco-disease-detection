@@ -31,11 +31,47 @@ CLASS_TO_CN = {
     'deficiency_k': '缺钾'
 }
 
+# 类别自适应置信度阈值（后处理优化 - 修正版）
+CLASS_CONF_THRESHOLDS = {
+    '白星病': 0.36,      # 轻微提高，减少误报同时保持召回率
+    '花叶病': 0.36,      # 轻微提高，减少误报同时保持召回率
+    '烟青虫': 0.25,      # 降低阈值，提高小目标召回率
+    '野火病': 0.35,      # 标准阈值
+    '健康': 0.35,        # 标准阈值
+    '缺钾': 0.35,        # 标准阈值
+}
+
 # 延迟加载统一YOLO模型
 _UNIFIED_MODEL = None
 _BASE_DRF = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DEFAULT_WEIGHTS_DIR = os.path.join(_BASE_DRF, "model_weights")
 DEFAULT_UNIFIED_MODEL_PATH = os.path.normpath(os.path.join(_DEFAULT_WEIGHTS_DIR, "yolo_unified_6class_best.pt"))
+
+
+def apply_post_processing(detected_classes, confidences):
+    """
+    应用后处理规则（最小化版本）：
+    仅处理健康+病害逻辑矛盾，保留所有其他多标签检测
+
+    Args:
+        detected_classes: set of English class names
+        confidences: dict mapping English class names to confidence scores
+
+    Returns:
+        (filtered_detected_classes, filtered_confidences)
+    """
+    filtered = confidences.copy()
+    detected = detected_classes.copy()
+
+    # 步骤2：健康+病害逻辑检查
+    if 'healthy' in detected and len(detected) > 1:
+        # 如果有其他病害且置信度更高，移除健康
+        other_confs = [filtered[d] for d in detected if d != 'healthy']
+        if other_confs and max(other_confs) > filtered['healthy']:
+            detected.remove('healthy')
+            del filtered['healthy']
+
+    return detected, filtered
 
 
 def _get_unified_model():
@@ -122,6 +158,9 @@ def _run_unified_detection(image_source, conf_threshold=0.35):
                         # 保存最高置信度
                         if class_name not in confidences or conf > confidences[class_name]:
                             confidences[class_name] = conf
+
+        # 应用后处理优化
+        detected_classes, confidences = apply_post_processing(detected_classes, confidences)
 
         # 分类结果
         diseases = []

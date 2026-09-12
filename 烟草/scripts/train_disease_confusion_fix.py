@@ -68,8 +68,8 @@ def train_for_disease_confusion():
         patience=40,
 
         # 其他参数
-        device='cpu',      # RTX 2050 CUDA不可用，使用CPU训练
-        workers=8,
+        device=0,          # RTX 2050 GPU可用，使用GPU训练
+        workers=4,         # 降低数据加载线程（4GB显存限制）
         project=str(OUTPUT_DIR),
         name='yolov8s_disease_confusion_fix',
         exist_ok=True,

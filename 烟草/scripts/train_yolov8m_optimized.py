@@ -56,8 +56,8 @@ def train_yolov8m_optimized():
         patience=30,       # 30轮无提升则停止
 
         # 其他参数
-        device='cpu',      # RTX 2050 CUDA不可用，使用CPU训练
-        workers=8,
+        device=0,          # RTX 2050 GPU可用，使用GPU训练
+        workers=4,         # 降低数据加载线程（4GB显存限制）
         project=str(OUTPUT_DIR),
         name='yolov8m_optimized',
         exist_ok=True,
