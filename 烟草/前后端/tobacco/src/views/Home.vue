@@ -40,11 +40,10 @@
 
     <div class="center-section">
       <div class="section-header light-green">
-        <span class="section-title"><i class="icon-dot"></i>{{ detectionMode === 'deficiency' ? '缺素识别' : '病虫害识别' }}</span>
-        <div class="detection-mode-toggle">
-          <button type="button" class="toggle-btn" :class="{ active: detectionMode === 'deficiency' }" @click="detectionMode = 'deficiency'">缺素检测</button>
-          <button type="button" class="toggle-btn" :class="{ active: detectionMode === 'disease' }" @click="detectionMode = 'disease'">病虫害检测</button>
-        </div>
+        <span class="section-title"><i class="icon-dot"></i>智能识别（病害+健康+缺钾）</span>
+      </div>
+      <div class="detection-hint">
+        系统将自动识别：4种病害、健康状态、缺钾症状
       </div>
       <div class="field-select-row">
         <label>地块选择：</label>
@@ -217,8 +216,7 @@ export default {
         humidity: '--'
       },
       fieldDetailVisible: false,
-      fieldDetailData: { name: '', area: '', basicRecords: [], topdressingRecords: [] },
-      detectionMode: 'deficiency' // 'deficiency' | 'disease'
+      fieldDetailData: { name: '', area: '', basicRecords: [], topdressingRecords: [] }
     };
   },
   mounted() {
@@ -407,15 +405,18 @@ export default {
         if (!blob) return;
         const formData = new FormData();
         formData.append('image', blob, 'capture.jpg');
-        formData.append('mode', this.detectionMode);
         try {
           const res = await axios.post(
-            `/api/user/${uid}/field/${this.selectedFieldId}/nd/`,
+            `/api/user/${uid}/field/${this.selectedFieldId}/unified_detect/`,
             formData
           );
-          this.recognitionResult = res.data.result || '识别完成';
-          this.recognitionExtraMessage = res.data.message || '';
-          await this.addPesticideRecordsFromDiseaseResult(res.data.result);
+          // 解析统一检测API的结构化结果
+          const result = res.data.result;
+          const message = res.data.message;
+          this.recognitionResult = this.formatDetectionResult(result);
+          this.recognitionExtraMessage = this.formatConfidenceMessage(result, message);
+          // 自动添加农药记录（如果检测到病害）
+          await this.addPesticideRecordsFromUnifiedResult(result);
         } catch (err) {
           this.recognitionResult = '';
           this.recognitionExtraMessage = '';
@@ -423,16 +424,60 @@ export default {
         }
       }, 'image/jpeg', 0.9);
     },
-    /** 若为病虫害检测结果且包含“检测到: xxx”，则根据病害种类在当前地块自动添加农药记录 */
-    async addPesticideRecordsFromDiseaseResult(result) {
-      if (!result || typeof result !== 'string' || !result.startsWith('检测到：') && !result.startsWith('检测到:')) return;
-      const raw = result.replace(/^检测到[：:]?\s*/, '').trim();
-      if (!raw) return;
-      const diseaseTypes = raw.split(/[、,，]/).map(s => s.trim()).filter(Boolean);
-      if (diseaseTypes.length === 0) return;
+    /** 格式化统一检测结果为显示文本 */
+    formatDetectionResult(result) {
+      if (!result) return '识别完成';
+      const { diseases, is_healthy, is_deficiency_k, all_detected } = result;
+
+      // 只有健康状态
+      if (is_healthy && all_detected && all_detected.length === 1) {
+        return '健康';
+      }
+
+      // 只有缺钾
+      if (is_deficiency_k && (!diseases || diseases.length === 0)) {
+        return '检测到：缺钾';
+      }
+
+      // 只有病害
+      if (diseases && diseases.length > 0 && !is_deficiency_k) {
+        return '检测到：' + diseases.join('、');
+      }
+
+      // 病害+缺钾混合
+      if (diseases && diseases.length > 0 && is_deficiency_k) {
+        return '检测到：' + [...diseases, '缺钾'].join('、');
+      }
+
+      // 未检测到任何问题
+      if (!all_detected || all_detected.length === 0) {
+        return '未检测到明确问题';
+      }
+
+      // 其他情况显示所有检测结果
+      return '检测到：' + all_detected.join('、');
+    },
+    /** 格式化置信度信息 */
+    formatConfidenceMessage(result, baseMessage) {
+      let message = baseMessage || '';
+      if (result && result.confidence && Object.keys(result.confidence).length > 0) {
+        const confStr = Object.entries(result.confidence)
+          .map(([name, conf]) => `${name} ${(conf * 100).toFixed(1)}%`)
+          .join('、');
+        const confMsg = `置信度：${confStr}`;
+        message = message ? `${message} | ${confMsg}` : confMsg;
+      }
+      return message;
+    },
+    /** 根据统一检测结果自动添加农药记录 */
+    async addPesticideRecordsFromUnifiedResult(result) {
+      if (!result || !result.diseases || result.diseases.length === 0) return;
+
+      const diseaseTypes = result.diseases; // ['白星病', '烟青虫']
       const uid = localStorage.getItem('userId') || 1;
       const fieldId = this.selectedFieldId;
       if (!fieldId) return;
+
       try {
         const res = await axios.post(
           `/api/user/${uid}/field/${fieldId}/pesticide_from_diseases/`,
@@ -496,15 +541,18 @@ export default {
         this.recognitionResult = '识别中...';
         const formData = new FormData();
         formData.append('image', file);
-        formData.append('mode', this.detectionMode);
         axios.post(
-          `/api/user/${uid}/field/${this.selectedFieldId}/nd/`,
+          `/api/user/${uid}/field/${this.selectedFieldId}/unified_detect/`,
           formData
         )
           .then(async (res) => {
-            this.recognitionResult = res.data.result || '识别完成';
-            this.recognitionExtraMessage = res.data.message || '';
-            await this.addPesticideRecordsFromDiseaseResult(res.data.result);
+            // 解析统一检测API的结构化结果
+            const result = res.data.result;
+            const message = res.data.message;
+            this.recognitionResult = this.formatDetectionResult(result);
+            this.recognitionExtraMessage = this.formatConfidenceMessage(result, message);
+            // 自动添加农药记录（如果检测到病害）
+            await this.addPesticideRecordsFromUnifiedResult(result);
             this.$refs.fileInput.value = '';
           })
           .catch(err => {
@@ -873,39 +921,14 @@ export default {
   max-width: 380px;
 }
 
-.detection-mode-toggle {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.toggle-btn {
-  padding: 6px 14px;
-  border: 1px solid rgba(255,255,255,0.6);
+.detection-hint {
+  font-size: 12px;
+  color: #558b2f;
+  padding: 6px 12px;
+  background: #f1f8e9;
   border-radius: 8px;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.toggle-btn:hover {
-  background: rgba(255,255,255,0.35);
-}
-
-.toggle-btn.active {
-  background: #fff;
-  color: #2d5a3d;
-  border-color: #fff;
-}
-
-.center-section .section-header.light-green {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  margin-bottom: 4px;
+  text-align: center;
 }
 
 .result-label {
