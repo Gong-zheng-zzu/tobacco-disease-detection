@@ -97,22 +97,30 @@ TEMPLATES = [
 WSGI_APPLICATION = "drf_test002.wsgi.application"
 
 
-# Database - MySQL（与 Navicat 连接信息一致）
+# Database - SQLite for testing (MySQL config commented out)
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'test_db',
-        'USER': 'root',
-        'PASSWORD': '123456',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# MySQL配置（需要时取消注释并启动MySQL服务）
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'test_db',
+#         'USER': 'root',
+#         'PASSWORD': '123456',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#         },
+#     }
+# }
 
 
 
@@ -166,3 +174,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MODEL_WEIGHTS_DIR = BASE_DIR / "model_weights"
 NUTRIENT_DEFICIENCY_MODEL_PATH = str(MODEL_WEIGHTS_DIR / "model_resnet18.pth")
 DISEASE_MODEL_PATH = str(MODEL_WEIGHTS_DIR / "yolov8n_best.pt")
+UNIFIED_MODEL_PATH = str(MODEL_WEIGHTS_DIR / "yolo_unified_6class_best.pt")
