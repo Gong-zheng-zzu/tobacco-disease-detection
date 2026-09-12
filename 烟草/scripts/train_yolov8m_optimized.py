@@ -12,7 +12,7 @@ from ultralytics import YOLO
 
 # 项目根目录
 BASE_DIR = Path(__file__).parent.parent
-DATA_YAML = BASE_DIR / "unified_tobacco_dataset" / "unified_tobacco.yaml"
+DATA_YAML = BASE_DIR / "unified_tobacco_dataset" / "data.yaml"
 OUTPUT_DIR = BASE_DIR / "runs" / "yolo_training"
 
 def train_yolov8m_optimized():
