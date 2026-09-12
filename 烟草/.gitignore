@@ -38,8 +38,9 @@ Thumbs.db
 *.userosscache
 *.sln.docstates
 
-# ML checkpoints and generated runs
+# ML checkpoints and generated runs (exclude production models)
 *.pt
+!models/yolo_unified_6class_best.pt
 *.pth
 *.onnx
 disease/runs/

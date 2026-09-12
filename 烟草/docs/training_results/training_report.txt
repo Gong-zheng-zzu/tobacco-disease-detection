@@ -1,0 +1,36 @@
+============================================================
+Training Agent - 训练报告
+============================================================
+
+训练时间: 2026-09-12 12:59:36
+模型: YOLOv8n (6类统一模型)
+数据集: D:\烟草\烟草\unified_tobacco_dataset\data.yaml
+
+训练配置:
+  - Epochs: 100
+  - Batch Size: 16
+  - Image Size: 640
+  - Device: 0
+  - Patience: 20
+
+验证结果:
+  - mAP50: 0.9619
+  - mAP50-95: 0.8675
+  - Precision: 0.9519
+  - Recall: 0.9295
+
+类别定义（6类）:
+  0: baixingbing (白星病)
+  1: huayebing (花叶病)
+  2: yanqingchong (烟青虫)
+  3: yehuobing (野火病)
+  4: healthy (健康)
+  5: deficiency_k (缺钾)
+
+解决的问题:
+  1. ✅ YOLO将缺钾误判为白星病 - 通过扩展至6类统一模型
+  2. ✅ ResNet18缺磷数据集标签错误 - 用YOLO缺钾类替代
+  3. ✅ 病害检测+营养分类分离 - 统一为单一YOLO模型
+
+权重路径: D:\烟草\烟草\runs\yolo_training\unified_6class_20260912_104707\weights\best.pt
+训练日志: D:\烟草\烟草\runs\yolo_training\unified_6class_20260912_104707
