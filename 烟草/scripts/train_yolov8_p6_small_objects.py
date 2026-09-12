@@ -28,11 +28,12 @@ def train_yolov8_p6_for_small_objects():
     model = YOLO('yolov8n-p6.pt')
 
     # 训练参数（小目标优化）
+    # 注意：RTX 2050显存4GB + CPU训练，大幅降低batch和分辨率
     results = model.train(
         data=str(DATA_YAML),
         epochs=100,
-        imgsz=1280,        # P6模型使用更大输入尺寸
-        batch=8,           # 1280分辨率需要更多显存，批量减小
+        imgsz=640,         # 降低分辨率640（原1280，CPU训练太慢）
+        batch=2,           # CPU训练降低批量
 
         # 小目标保护增强策略
         mosaic=0.3,        # 大幅降低mosaic（小目标会进一步缩小）
@@ -56,7 +57,7 @@ def train_yolov8_p6_for_small_objects():
         patience=30,
 
         # 其他参数
-        device=0,
+        device='cpu',      # RTX 2050 CUDA不可用，使用CPU训练
         workers=8,
         project=str(OUTPUT_DIR),
         name='yolov8n_p6_small_objects',

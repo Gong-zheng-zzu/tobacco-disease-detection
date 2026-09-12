@@ -28,11 +28,12 @@ def train_yolov8m_optimized():
     model = YOLO('yolov8m.pt')
 
     # 训练参数（针对算法瓶颈优化）
+    # 注意：RTX 2050显存4GB，需要降低batch size
     results = model.train(
         data=str(DATA_YAML),
         epochs=100,
         imgsz=640,
-        batch=16,  # YOLOv8m需要更多显存，批量减小
+        batch=4,  # RTX 2050显存限制，降低批量（原16→4）
 
         # 优化后的数据增强策略
         mosaic=0.5,        # 降低mosaic概率（默认1.0），保护小目标
@@ -55,7 +56,7 @@ def train_yolov8m_optimized():
         patience=30,       # 30轮无提升则停止
 
         # 其他参数
-        device=0,          # 使用GPU 0
+        device='cpu',      # RTX 2050 CUDA不可用，使用CPU训练
         workers=8,
         project=str(OUTPUT_DIR),
         name='yolov8m_optimized',

@@ -30,11 +30,12 @@ def train_for_disease_confusion():
     model = YOLO('yolov8s.pt')
 
     # 训练参数（困难样本优化）
+    # 注意：RTX 2050显存4GB，需要降低batch size
     results = model.train(
         data=str(DATA_YAML),
         epochs=120,        # 增加训练轮数
         imgsz=640,
-        batch=16,
+        batch=4,           # CPU训练降低批量（原16→4）
 
         # 多尺度训练（学习不同尺度的细微差异）
         scale=(0.5, 1.5),  # 更大的尺度变化范围
@@ -67,7 +68,7 @@ def train_for_disease_confusion():
         patience=40,
 
         # 其他参数
-        device=0,
+        device='cpu',      # RTX 2050 CUDA不可用，使用CPU训练
         workers=8,
         project=str(OUTPUT_DIR),
         name='yolov8s_disease_confusion_fix',
