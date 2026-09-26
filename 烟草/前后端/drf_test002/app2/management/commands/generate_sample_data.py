@@ -22,7 +22,8 @@ class Command(BaseCommand):
         if not parcels:
             for i, (name, area) in enumerate([('1号地块', 1500.5), ('2号地块', 800.0), ('3号地块', 1100.0),
                                               ('4号地块', 950.0), ('5号地块', 680.0)], 1):
-                LandParcel.objects.get_or_create(user=user, defaults={'name': name, 'area': area})
+                # name 必须在查找条件里：否则 5 次循环都会匹配到第一条记录，只生成 1 个地块
+                LandParcel.objects.get_or_create(user=user, name=name, defaults={'area': area})
             parcels = list(LandParcel.objects.filter(user=user).order_by('id'))
 
         now = timezone.now()

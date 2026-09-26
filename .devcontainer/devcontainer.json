@@ -1,0 +1,46 @@
+{
+  "name": "烟草病害识别系统",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+
+  "forwardPorts": [5173, 8000],
+  "portsAttributes": {
+    "5173": {
+      "label": "前端界面（考官请打开此端口）",
+      "onAutoForward": "openPreview",
+      "visibility": "public"
+    },
+    "8000": {
+      "label": "Django 后端 API",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "onCreateCommand": "bash .devcontainer/setup.sh",
+  "postAttachCommand": "bash .devcontainer/start.sh",
+
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "Vue.volar"
+      ]
+    }
+  },
+
+  "remoteEnv": {
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONIOENCODING": "utf-8"
+  }
+}

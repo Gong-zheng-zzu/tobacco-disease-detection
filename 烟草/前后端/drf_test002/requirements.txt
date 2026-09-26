@@ -1,11 +1,22 @@
-Django>=4.2
+# CPU 版 PyTorch 索引（Codespaces/无 GPU 环境必需）
+# 不加此行会拉取 2-3GB 的 CUDA wheel，容器磁盘和安装时间都撑不住
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+Django>=4.2,<5.0
 djangorestframework
 django-cors-headers
-mysqlclient>=2.2.0
 Pillow
 requests
 openai>=1.0.0
-torch
-torchvision
-ultralytics>=8.0.0
-numpy
+
+# 锁定 CPU 版本：约 200MB，替代默认的 2-3GB CUDA 版
+torch==2.3.1
+torchvision==0.18.1
+
+# 锁定上界，防止版本漂移导致已训练权重反序列化失败
+ultralytics>=8.0.0,<8.4.0
+numpy<2.0
+
+# 注：本项目使用 SQLite（见 settings.py DATABASES），
+# 原 mysqlclient 依赖已移除——它需要系统级 libmysqlclient-dev 才能编译，
+# 在容器环境中是常见的安装失败点，且项目并未实际使用 MySQL。

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -17,7 +18,20 @@ DEBUG = True
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-ALLOWED_HOSTS = ['192.168.170.30', 'localhost', '127.0.0.1', '192.168.170.76', '47.98.18.59']
+ALLOWED_HOSTS = [
+    '192.168.170.30', 'localhost', '127.0.0.1', '192.168.170.76', '47.98.18.59',
+    # GitHub Codespaces 端口转发域名
+    '.app.github.dev',
+    '.github.dev',
+    '.preview.app.github.dev',
+]
+
+# Django 4.2 对跨域 POST 需要显式信任来源。
+# 统一检测端点因 authentication_classes=[] 不触发 CSRF，但 admin 登录需要。
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.app.github.dev',
+    'https://*.github.dev',
+]
 
 # Application definition
 MEDIA_URL = '/media/'

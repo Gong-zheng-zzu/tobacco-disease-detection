@@ -1,0 +1,15 @@
+# Shell 脚本必须保持 LF 行尾。
+# 若被转换为 CRLF，Linux/Codespaces 容器执行时会报
+# "$'\r': command not found" 并导致环境初始化失败。
+*.sh text eol=lf
+
+# Codespaces / 容器配置文件同样在 Linux 下读取
+.devcontainer/** text eol=lf
+
+# 模型权重与图片按二进制处理，禁止任何行尾转换
+*.pt binary
+*.pth binary
+*.onnx binary
+*.jpg binary
+*.jpeg binary
+*.png binary

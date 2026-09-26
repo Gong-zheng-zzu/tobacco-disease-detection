@@ -10,8 +10,10 @@ from django.contrib.sessions.backends.db import SessionStore
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 从环境变量中获取 API 密钥，提高安全性
-API_KEY = os.getenv('OPENAI_API_KEY', "sk-db25d01d202843daa6ba57b28aa2426c")
+# API 密钥仅从环境变量读取，不设硬编码回退值（避免随公开仓库泄露）。
+# 本地开发：设置环境变量 DASHSCOPE_API_KEY
+# GitHub Codespaces：在 Settings -> Codespaces -> Secrets 添加 DASHSCOPE_API_KEY
+API_KEY = os.getenv('DASHSCOPE_API_KEY') or os.getenv('OPENAI_API_KEY', '')
 BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 MODEL_NAME = "qwen2.5-14b-instruct-1m"
 
@@ -27,6 +29,13 @@ SYSTEM_PROMPT = """你是烟草种植与农业管理领域的专业助手，专�
 
 
 def get_ai_response(messages):
+    if not API_KEY:
+        logger.warning("未配置 DASHSCOPE_API_KEY，AI 咨询功能不可用")
+        return {
+            'content': 'AI 咨询功能未配置 API 密钥，暂不可用。系统的病害识别、'
+                       '数据分析等其他功能不受影响。',
+            'reasoning': ''
+        }
     try:
         from openai import OpenAI
         client = OpenAI(

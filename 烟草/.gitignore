@@ -41,10 +41,15 @@ Thumbs.db
 # ML checkpoints and generated runs (exclude production models)
 *.pt
 !models/yolo_unified_6class_best.pt
+!前后端/drf_test002/model_weights/yolo_unified_6class_best.pt
 *.pth
 *.onnx
 disease/runs/
 模型部署/runs/
+
+# 例外：Codespaces 演示用的示例图片
+!demo_images/*.jpg
+!demo_images/*.png
 
 # Local datasets, archives, and generated prediction outputs
 *.zip

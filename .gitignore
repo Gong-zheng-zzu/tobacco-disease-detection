@@ -43,6 +43,10 @@ dist/
 *.h5
 *.pkl
 
+# 例外：Codespaces 演示所需的统一检测模型（5.99MB）
+!烟草/前后端/drf_test002/model_weights/yolo_unified_6class_best.pt
+!烟草/models/yolo_unified_6class_best.pt
+
 # 数据集（太大，不要提交）
 烟草/完整-目标检测--加密--烟草叶部病害/all_images/
 烟草/完整-目标检测--加密--烟草叶部病害/images/
@@ -52,6 +56,10 @@ dist/
 *.png
 *.gif
 *.bmp
+
+# 例外：Codespaces 演示用的示例图片
+!烟草/demo_images/*.jpg
+!烟草/demo_images/*.png
 
 # 压缩包
 *.zip
