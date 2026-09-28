@@ -17,8 +17,8 @@ def build_model(num_classes=2, weights_path=None):
     return model
 
 
-# 类别：0=健康, 1=缺磷
-CLASS_NAMES = ["健康", "缺磷"]
+# 类别：0=健康, 1=缺钾（原目录名缺磷是历史命名错误）
+CLASS_NAMES = ["健康", "缺钾"]
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_RESNET = os.path.normpath(

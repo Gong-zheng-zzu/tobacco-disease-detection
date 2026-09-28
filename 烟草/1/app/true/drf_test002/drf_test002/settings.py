@@ -166,3 +166,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MODEL_WEIGHTS_DIR = BASE_DIR / "model_weights"
 NUTRIENT_DEFICIENCY_MODEL_PATH = str(MODEL_WEIGHTS_DIR / "model_resnet18.pth")
 DISEASE_MODEL_PATH = str(MODEL_WEIGHTS_DIR / "yolov8n_best.pt")
+UNIFIED_MODEL_PATH = str(MODEL_WEIGHTS_DIR / "yolo_unified_6class_best.pt")

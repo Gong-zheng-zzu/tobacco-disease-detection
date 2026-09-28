@@ -116,16 +116,26 @@ export default {
       try {
         const uid = localStorage.getItem('userId') || 1;
         const firstFieldId = this.fieldList[0]?.id ?? 1;
-        const res = await axios.get(`${API_BASE}/user/${uid}/field/${firstFieldId}/fer_regions/`);
-        const data = res.data.data || [];
+        const [regionRes, recordRes] = await Promise.all([
+          axios.get(`${API_BASE}/user/${uid}/field/${firstFieldId}/fer_regions/`),
+          axios.get(`${API_BASE}/user/${uid}/fer_records/${firstFieldId}/`)
+        ]);
+        const data = regionRes.data.data || [];
+        const records = recordRes.data.data || [];
         const f = { N: '0.00', P: '0.00', K: '0.00' };
         let ferDate = '';
         data.forEach(item => {
           const t = item.combined_nutrient_type || '';
-          if (t.includes('N')) f.N = item.extra_n_used ?? f.N;
-          if (t.includes('P')) f.P = item.extra_p_used ?? f.P;
-          if (t.includes('K')) f.K = item.extra_k_used ?? f.K;
+          if (t.includes('N')) f.N = (Number(f.N) + Number(item.extra_n_used || 0)).toFixed(2);
+          if (t.includes('P')) f.P = (Number(f.P) + Number(item.extra_p_used || 0)).toFixed(2);
+          if (t.includes('K')) f.K = (Number(f.K) + Number(item.extra_k_used || 0)).toFixed(2);
           if (!ferDate && item.fer_time) ferDate = item.fer_time.split(' ')[0].replace(/年|月|日/g, ' ').trim();
+        });
+        records.forEach(item => {
+          f.N = (Number(f.N) + Number(item.base_n_used || 0)).toFixed(2);
+          f.P = (Number(f.P) + Number(item.base_p_used || 0)).toFixed(2);
+          f.K = (Number(f.K) + Number(item.base_k_used || 0)).toFixed(2);
+          if (!ferDate && item.fer_time) ferDate = item.fer_time.split(' ')[0];
         });
         this.fertilizerData = f;
         this.updateDate = ferDate || '--';
@@ -134,8 +144,22 @@ export default {
       }
     },
     loadWeather() {
+      const fallbackWeather = async () => {
+        try {
+          const res = await axios.get(`${API_BASE}/weather/`, { timeout: 9000 });
+          const cur = res.data?.current;
+          if (cur) {
+            this.weatherData.temperature = Math.round(cur.temperature_2m);
+            this.weatherData.humidity = cur.relative_humidity_2m;
+            this.weatherData.windSpeed = cur.wind_speed_10m;
+            this.weatherData.condition = `${this.weatherCodeToText(cur.weather_code)}（郑州）`;
+            return;
+          }
+        } catch (e) { /* Keep a usable demo value when the weather provider is unavailable. */ }
+        this.weatherData = { condition: '多云（演示）', temperature: 24, windSpeed: 8, humidity: 58 };
+      };
       if (!navigator.geolocation) {
-        this.weatherData.condition = '定位不支持';
+        void fallbackWeather();
         return;
       }
       navigator.geolocation.getCurrentPosition(
@@ -157,11 +181,16 @@ export default {
               this.weatherData.condition = this.weatherCodeToText(cur.weather_code);
             }
           } catch (e) {
-            this.weatherData.condition = '获取失败';
+            void fallbackWeather();
           }
         },
         () => {
-          this.weatherData.condition = '定位失败';
+          void fallbackWeather();
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 3500,
+          maximumAge: 300000
         }
       );
     },

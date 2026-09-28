@@ -1,0 +1,9 @@
+plugins { id 'com.android.application' }
+
+android { namespace 'io.yqhh.app'; compileSdk 35
+    defaultConfig { applicationId 'io.yqhh.app'; minSdk 26; targetSdk 28; versionCode 107; versionName '1.0.7' }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}

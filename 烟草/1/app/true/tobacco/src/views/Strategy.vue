@@ -156,12 +156,11 @@ export default {
           note: '连续阴雨后优先施药，间隔7-10天可补喷一次',
         },
         {
-          name: '99% 磷酸二氢钾施药方案',
-          target: '黄叶病',
-          perMu: 100,
-          unit: '克',
-          timing: '黄叶初现时喷施',
-          note: '兑水均匀喷雾，避开中午高温时段',
+          name: '花叶病防治方案待确认',
+          target: '花叶病',
+          dosage: '待农技人员确认',
+          timing: '确诊后确定',
+          note: '请确认病因和当地防治方案后再施药',
         },
         {
           name: '4.5% 高效氯氰菊酯乳油施药方案',
@@ -172,14 +171,11 @@ export default {
           note: '与不同作用机制药剂轮换，降低抗药性风险',
         },
         {
-          name: '硼肥+磷酸二氢钾施药方案',
-          target: '叶厚病',
-          parts: [
-            { name: '硼肥', perMuMin: 20, perMuMax: 30, unit: '克' },
-            { name: '磷酸二氢钾', perMu: 100, unit: '克' },
-          ],
-          timing: '发病早期连续喷施',
-          note: '两种药剂先分别溶解再混配，现配现用',
+          name: '野火病防治方案待确认',
+          target: '野火病',
+          dosage: '待农技人员确认',
+          timing: '确诊后确定',
+          note: '请确认病因和当地防治方案后再施药',
         },
       ],
     };
@@ -201,6 +197,7 @@ export default {
       });
 
       return visible.map(item => {
+        if (!item.perMu) return item;
         if (!hasArea) {
           return {
             ...item,

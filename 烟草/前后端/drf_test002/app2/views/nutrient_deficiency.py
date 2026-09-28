@@ -5,6 +5,39 @@ from ..models import User, LandParcel, NutrientDeficiency
 from ..serializer import NDSerializer
 
 
+class ConfirmedDeficiencyView(APIView):
+    """Store a reviewed nutrient finding with traceable evidence, not a photo guess."""
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, user_id, fieldnum):
+        user = User.objects.filter(pk=user_id).first()
+        field = LandParcel.objects.filter(user_id=user_id, pk=fieldnum).first()
+        if user is None or field is None:
+            return Response({"error": "用户或地块不存在"}, status=status.HTTP_404_NOT_FOUND)
+        if not user.token or request.headers.get("X-User-Token") != user.token:
+            return Response({"error": "请重新登录后提交"}, status=status.HTTP_403_FORBIDDEN)
+
+        nutrient = str(request.data.get("nutrient_type", "")).upper()
+        source = str(request.data.get("verification_source", ""))
+        reference = str(request.data.get("verification_reference", "")).strip()
+        if nutrient not in {"N", "P", "K"}:
+            return Response({"error": "请选择缺氮、缺磷或缺钾"}, status=status.HTTP_400_BAD_REQUEST)
+        if source not in {"lab_report", "expert_review"} or not reference or len(reference) > 256:
+            return Response({"error": "请选择依据类型并填写报告编号或复核人及日期"}, status=status.HTTP_400_BAD_REQUEST)
+
+        record = NutrientDeficiency.objects.create(
+            parcel=field,
+            nutrient_type=nutrient,
+            intensity=None,
+            verification_source=source,
+            verification_reference=reference,
+        )
+        return Response({"code": 200, "data": NDSerializer(record).data,
+                         "message": "已保存确认结果；施肥用量仍需根据检测数值和农艺方案确定"},
+                        status=status.HTTP_201_CREATED)
+
+
 class ParcelDeficiencyView(APIView):
     """按地块查询缺素记录"""
     authentication_classes = []

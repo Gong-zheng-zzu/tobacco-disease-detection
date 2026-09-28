@@ -1,162 +1,25 @@
 <template>
-  <div class="login-page">
-    <div class="login-card">
-      <div class="login-header">
-        <h1>叶擎慧航</h1>
-        <p>烟草种植管理系统</p>
-      </div>
-      <form class="login-form" @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label>用户名</label>
-          <input v-model="form.username" type="text" placeholder="请输入用户名" required>
-        </div>
-        <div class="form-group">
-          <label>密码</label>
-          <input v-model="form.password" type="password" placeholder="请输入密码" required>
-        </div>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-brand"><h1>叶擎慧航</h1><p>烟草生产协同平台</p></div>
+      <form @submit.prevent="handleLogin">
+        <label>用户名<input v-model.trim="form.username" autocomplete="username" required></label>
+        <label>密码<input v-model="form.password" type="password" autocomplete="current-password" required></label>
+        <div class="captcha-row"><label>验证码<input v-model.trim="form.captcha_code" maxlength="5" autocomplete="off" required></label><button type="button" class="captcha-image" @click="loadCaptcha"><img v-if="captchaImage" :src="captchaImage" alt="图形验证码"><span v-else>加载中</span></button></div>
         <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
-        <button type="submit" class="btn-login" :disabled="loading">{{ loading ? '登录中...' : '登录' }}</button>
-        <router-link to="/register" class="link-register">没有账号？去注册</router-link>
+        <button class="primary-btn" :disabled="loading || captchaLoading">{{ loading ? '登录中...' : '登录' }}</button>
+        <router-link to="/register" class="auth-link">没有账号？去注册</router-link>
       </form>
     </div>
   </div>
 </template>
-
 <script>
-import axios from 'axios';
-import { API_BASE } from '@/config/api';
-
-export default {
-  data() {
-    return {
-      form: { username: '', password: '' },
-      errorMsg: '',
-      loading: false
-    };
-  },
-  methods: {
-    async handleLogin() {
-      this.errorMsg = '';
-      this.loading = true;
-      try {
-        const res = await axios.post(`${API_BASE}/login/`, this.form);
-        if (res.data.code === 200) {
-          localStorage.setItem('token', res.data.token);
-          localStorage.setItem('userId', String(res.data.user_id));
-          localStorage.setItem('username', res.data.username || this.form.username);
-          this.$router.replace('/');
-        } else {
-          this.errorMsg = res.data.msg || '登录失败';
-        }
-      } catch (e) {
-        this.errorMsg = e.response?.data?.msg || '网络错误，请重试';
-      } finally {
-        this.loading = false;
-      }
-    }
-  }
-};
+import axios from 'axios'; import { API_BASE } from '@/config/api';
+export default { data:()=>({ form:{username:'',password:'',captcha_id:'',captcha_code:''},captchaImage:'',captchaLoading:false,loading:false,errorMsg:'' }), mounted(){this.loadCaptcha();}, methods:{
+  async loadCaptcha(){this.captchaLoading=true;try{const r=await axios.get(`${API_BASE}/auth/captcha/`);this.form.captcha_id=r.data.data.captcha_id;this.form.captcha_code='';this.captchaImage=r.data.data.image;}catch{this.errorMsg='验证码加载失败，请重试';}finally{this.captchaLoading=false;}},
+  async handleLogin(){this.errorMsg='';this.loading=true;try{const r=await axios.post(`${API_BASE}/login/`,this.form);if(r.data.code!==200)throw new Error(r.data.msg||'登录失败');localStorage.setItem('token',r.data.token);localStorage.setItem('userId',String(r.data.user_id));localStorage.setItem('username',r.data.username||this.form.username);const me=await axios.get(`${API_BASE}/me/`);const roles=me.data.data.roles||[];localStorage.setItem('roles',JSON.stringify(roles));const target=roles.length!==1?'/workspaces':(['harvest','curing','quality','admin'].includes(roles[0]?.code)?'/workspace-dashboard':'/');this.$router.replace(target);}catch(e){this.errorMsg=e.response?.status===429?'失败次数过多，请稍后再试':e.response?.data?.msg||e.message||'网络错误，请重试';await this.loadCaptcha();}finally{this.loading=false;}}
+}};
 </script>
-
 <style scoped>
-.login-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.login-card {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(45, 90, 61, 0.2);
-  padding: 40px;
-  width: 100%;
-  max-width: 380px;
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.login-header h1 {
-  font-size: 28px;
-  color: #2d5a3d;
-  margin: 0 0 8px;
-}
-
-.login-header p {
-  font-size: 14px;
-  color: #558b2f;
-  margin: 0;
-}
-
-.login-form .form-group {
-  margin-bottom: 20px;
-}
-
-.login-form label {
-  display: block;
-  font-size: 14px;
-  color: #2d5a3d;
-  margin-bottom: 8px;
-}
-
-.login-form input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #c8e6c9;
-  border-radius: 8px;
-  font-size: 15px;
-  box-sizing: border-box;
-}
-
-.login-form input:focus {
-  outline: none;
-  border-color: #66bb6a;
-  box-shadow: 0 0 0 2px rgba(102, 187, 106, 0.2);
-}
-
-.error-msg {
-  color: #c62828;
-  font-size: 13px;
-  margin: 0 0 12px;
-}
-
-.btn-login {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(90deg, #66bb6a, #81c784);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 16px;
-}
-
-.btn-login:hover:not(:disabled) {
-  opacity: 0.95;
-}
-
-.btn-login:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.link-register {
-  display: block;
-  text-align: center;
-  color: #558b2f;
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.link-register:hover {
-  text-decoration: underline;
-}
+.auth-page{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#e9f6ed,#f7fbf7)}.auth-card{width:min(100%,390px);padding:34px;background:#fff;border:1px solid #dcece2;border-radius:16px;box-shadow:0 16px 44px rgba(28,93,58,.12)}.auth-brand{text-align:center;margin-bottom:26px}.auth-brand h1{margin:0;color:#196d49;font-size:25px}.auth-brand p{margin:7px 0 0;color:#71907f;font-size:13px}label{display:block;margin:0 0 15px;color:#315b45;font-size:13px;font-weight:600}input{display:block;width:100%;box-sizing:border-box;margin-top:7px;padding:11px 12px;border:1px solid #cfe2d5;border-radius:8px;font:inherit;font-weight:400}.captcha-row{display:grid;grid-template-columns:1fr 148px;gap:10px;align-items:end}.captcha-image{height:44px;margin-bottom:15px;padding:0;border:1px solid #cfe2d5;background:#f4fbf6;border-radius:8px;overflow:hidden}.captcha-image img{width:100%;height:100%;object-fit:cover}.captcha-image span{color:#668875;font-size:12px}.primary-btn{width:100%;padding:12px;border:0;border-radius:8px;background:#1f8758;color:#fff;font-weight:700}.primary-btn:disabled{opacity:.6}.auth-link{display:block;margin-top:17px;text-align:center;color:#31845b;font-size:13px}.error-msg{color:#c33b3b;font-size:13px;margin:0 0 12px}
 </style>

@@ -7,9 +7,27 @@ from .views.nutrient_df import ImageRecognitionView, NutrientRecognitionWithFiel
 from .views.region_fertilizer import FerRegionView
 from .views.AIconsult import ChatAPIView
 from .views.device import DeviceView, DeviceDetailView
-from .views.nutrient_deficiency import ParcelDeficiencyView, UserAllDeficienciesView
+from .views.nutrient_deficiency import ParcelDeficiencyView, UserAllDeficienciesView, ConfirmedDeficiencyView
 from .views.unified_detection import UnifiedDetectionView, SimpleUnifiedDetectionView
+from .views.strategy import FieldStrategyContextView
+from .views.weather import WeatherView
+from .views.auth import CaptchaView
+from .views.roles import MeView, ActiveRoleView, RoleListView, UserRoleView, AdminUsersView
+from .views.workflow import WorkspaceSummaryView
+from .views.workflow import HarvestBatchView, CuringBatchView, QualityInspectionView
 urlpatterns = [
+    path('auth/captcha/', CaptchaView.as_view(), name='captcha'),
+    path('me/', MeView.as_view(), name='me'),
+    path('me/active-role/', ActiveRoleView.as_view(), name='active-role'),
+    path('workspace/summary/', WorkspaceSummaryView.as_view(), name='workspace-summary'),
+    path('roles/', RoleListView.as_view(), name='roles'),
+    path('users/<int:user_id>/roles/', UserRoleView.as_view(), name='user-roles'),
+    path('users/<int:user_id>/roles/<str:role_code>/', UserRoleView.as_view(), name='user-role-delete'),
+    path('admin/users/', AdminUsersView.as_view(), name='admin-users'),
+    path('harvest/batches/', HarvestBatchView.as_view(), name='harvest-batches'),
+    path('curing/batches/', CuringBatchView.as_view(), name='curing-batches'),
+    path('quality/inspections/', QualityInspectionView.as_view(), name='quality-inspections'),
+    path('weather/', WeatherView.as_view(), name='weather'),
     # ==========用户=========================================================================
     # 用户注册
     path('register/', RegisteryView.as_view(), name='register'),
@@ -87,21 +105,25 @@ urlpatterns = [
     #========================缺素识别======================
     path('nd/',
          ImageRecognitionView.as_view(),),
-    # 缺素识别（带地块选择，结果写入缺素记录并生成追肥建议）
+    # 缺素识别（带地块选择，仅返回图片筛查提示）
     path('user/<int:user_id>/field/<int:fieldnum>/nd/',
          NutrientRecognitionWithFieldView.as_view(), name='nutrient-recognition-with-field'),
 
     # 按地块查询缺素记录（数据分析用）
     path('user/<int:user_id>/field/<int:fieldnum>/deficiencies/',
          ParcelDeficiencyView.as_view(), name='parcel-deficiencies'),
+    path('user/<int:user_id>/field/<int:fieldnum>/deficiencies/confirmed/',
+         ConfirmedDeficiencyView.as_view(), name='confirmed-deficiency'),
     path('user/<int:user_id>/deficiencies/',
          UserAllDeficienciesView.as_view(), name='user-all-deficiencies'),
+    path('user/<int:user_id>/field/<int:fieldnum>/strategy_context/',
+         FieldStrategyContextView.as_view(), name='field-strategy-context'),
 
     #==========统一检测（病害+健康+缺钾）======================
     # 简单检测（不关联地块，只返回结果）
     path('unified_detect/',
          SimpleUnifiedDetectionView.as_view(), name='simple-unified-detection'),
-    # 完整检测（关联地块，检测到缺钾会记录并生成追肥建议）
+    # 完整检测（关联地块，图片结果不自动生成施肥记录）
     path('user/<int:user_id>/field/<int:fieldnum>/unified_detect/',
          UnifiedDetectionView.as_view(), name='unified-detection-with-field'),
 

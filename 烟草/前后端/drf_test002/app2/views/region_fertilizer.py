@@ -23,7 +23,9 @@ class FerRegionView(APIView):
         created_regions = []
 
         for nutrient_type in ['N', 'P', 'K']:
-            nutrient_deficiencies = latest_deficiencies.filter(nutrient_type=nutrient_type)
+            nutrient_deficiencies = latest_deficiencies.filter(
+                nutrient_type=nutrient_type, intensity__isnull=False
+            )
             if nutrient_deficiencies.exists():
                 total_area_m2 = field_area_m2 * 0.3
                 avg_intensity = float(sum(d.intensity for d in nutrient_deficiencies) / nutrient_deficiencies.count())
@@ -52,7 +54,7 @@ class FerRegionView(APIView):
                     return Response({"msg": "追肥记录创建失败", "code": 400, "errors": serializer.errors})
 
         if not created_regions:
-            return Response({"msg": "无有效缺素数据，未创建追肥记录", "code": 404})
+            return Response({"msg": "缺素记录尚无核定强度，未创建追肥记录", "code": 404})
 
         return Response({"msg": "追肥记录已创建", "code": 200, "data": created_regions})
 

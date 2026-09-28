@@ -8,8 +8,8 @@ from django.conf import settings
 from ..models import User, LandParcel, NutrientDeficiency, Fer_region_record
 from ..serializer import FerRegionCreateSerializer, FerRegionSerializer
 
-# ResNet18 二分类：0=健康, 1=缺磷（与 模型部署/train_resnet.py 一致）
-CLASS_NAMES = ["健康", "缺磷"]
+# ResNet18 二分类：0=健康, 1=缺钾（与 模型部署/train_resnet.py 一致）
+CLASS_NAMES = ["健康", "缺钾"]
 
 # 病虫害 YOLO 类别名（与 disease/data.yaml 一致）
 DISEASE_NAME_MAP = {
@@ -194,7 +194,7 @@ class ImageRecognitionView(APIView):
 
 
 class NutrientRecognitionWithFieldView(APIView):
-    """缺素识别（带地块选择）：识别结果会保存到缺素记录，若检测到缺素则自动生成追肥建议"""
+    """缺素识别（带地块选择）：图片结果仅用于筛查。"""
     authentication_classes = []
     permission_classes = []
 
@@ -300,17 +300,7 @@ class NutrientRecognitionWithFieldView(APIView):
         response_data = {"result": result_text, "code": 200}
 
         if predicted_class == 1:
-            deficiency = NutrientDeficiency.objects.create(
-                parcel=field,
-                nutrient_type='P',
-                intensity=0.5
-            )
-            fer_region, fer_err = self._create_fer_region_for_deficiency(field, 'P', 0.5)
-            if fer_region:
-                fer_region.deficiencies.add(deficiency)
-                response_data["fer_region"] = FerRegionSerializer(fer_region).data
-                response_data["message"] = "已检测到缺磷，已记录缺素并生成追肥建议"
-            else:
-                response_data["message"] = "已记录缺磷缺素，追肥记录创建失败"
+            response_data["requires_confirmation"] = True
+            response_data["message"] = "图片提示疑似缺钾；请依据检测报告或专家复核后录入"
 
         return Response(response_data, status=status.HTTP_200_OK)

@@ -1,5 +1,5 @@
 """
-大豆缺磷分类 - ResNet18 迁移学习训练脚本
+烟草缺钾分类 - ResNet18 迁移学习训练脚本
 相比 AlexNet 提升准确度：预训练 backbone + 数据增强 + 正确标签
 """
 import torch
@@ -17,7 +17,7 @@ DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), "模型部署数据集")
 MODEL_DIR = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "前后端", "drf_test002", "model_weights"))
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-# 健康=0, 缺磷=1
+# 健康=0, 缺钾=1（原“缺磷”目录中的图片文件名均为 potassium_deficiency）
 class RemapLabelDataset(torch.utils.data.Dataset):
     def __init__(self, dataset, label_offset=0):
         self.dataset = dataset

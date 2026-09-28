@@ -8,8 +8,11 @@ from .views.region_fertilizer import FerRegionView
 from .views.AIconsult import ChatAPIView
 from .views.device import DeviceView, DeviceDetailView
 from .views.nutrient_deficiency import ParcelDeficiencyView, UserAllDeficienciesView
+from .views.unified_detection import UnifiedDetectionView, SimpleUnifiedDetectionView
 from .views.strategy import FieldStrategyContextView
+from .views.weather import WeatherView
 urlpatterns = [
+    path('weather/', WeatherView.as_view(), name='weather'),
     # ==========用户=========================================================================
     # 用户注册
     path('register/', RegisteryView.as_view(), name='register'),
@@ -98,5 +101,13 @@ urlpatterns = [
          UserAllDeficienciesView.as_view(), name='user-all-deficiencies'),
     path('user/<int:user_id>/field/<int:fieldnum>/strategy_context/',
          FieldStrategyContextView.as_view(), name='field-strategy-context'),
+
+    #==========统一检测（病害+健康+缺钾）======================
+    # 简单检测（不关联地块，只返回结果）
+    path('unified_detect/',
+         SimpleUnifiedDetectionView.as_view(), name='simple-unified-detection'),
+    # 完整检测（关联地块，检测到缺钾会记录并生成追肥建议）
+    path('user/<int:user_id>/field/<int:fieldnum>/unified_detect/',
+         UnifiedDetectionView.as_view(), name='unified-detection-with-field'),
 
 ]

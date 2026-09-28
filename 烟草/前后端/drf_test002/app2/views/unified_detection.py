@@ -9,8 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.conf import settings
 
-from ..models import User, LandParcel, NutrientDeficiency, Fer_region_record
-from ..serializer import FerRegionCreateSerializer, FerRegionSerializer
+from ..models import User, LandParcel
 
 # 统一6类检测：4病害 + 健康 + 缺钾
 CLASS_NAMES = {
@@ -140,6 +139,7 @@ def _run_unified_detection(image_source, conf_threshold=0.35):
             conf=conf_threshold,
             iou=0.4,
             agnostic_nms=True,
+            augment=True,
             verbose=False
         )
 
@@ -228,22 +228,10 @@ class UnifiedDetectionView(APIView):
             "message": ""
         }
 
-        # 如果检测到缺钾，记录并生成追肥建议
+        # The K class was trained on soybean images; treat it as a screening hint.
         if result['is_deficiency_k']:
-            deficiency = NutrientDeficiency.objects.create(
-                parcel=field,
-                nutrient_type='K',  # 缺钾
-                intensity=0.5
-            )
-
-            # 生成追肥建议
-            fer_region, fer_err = self._create_fer_region_for_deficiency(field, 'K', 0.5)
-            if fer_region:
-                fer_region.deficiencies.add(deficiency)
-                response_data["fer_region"] = FerRegionSerializer(fer_region).data
-                response_data["message"] = "已检测到缺钾，已记录并生成追肥建议"
-            else:
-                response_data["message"] = "已记录缺钾，追肥记录创建失败"
+            response_data["requires_confirmation"] = True
+            response_data["message"] = "图片提示疑似缺钾；请依据检测报告或专家复核后录入"
 
         # 如果检测到病害，添加提示
         if result['diseases']:
@@ -255,32 +243,6 @@ class UnifiedDetectionView(APIView):
             response_data["message"] = "烟草叶片健康"
 
         return Response(response_data, status=status.HTTP_200_OK)
-
-    def _create_fer_region_for_deficiency(self, field, nutrient_type, intensity=0.5):
-        """为单条缺素记录创建追肥记录"""
-        field_area_m2 = float(field.area)
-        total_area_m2 = field_area_m2 * 0.3
-        factor = 0.5 + float(intensity) * 0.5
-        base_unit = 2000 / 3
-        base_volume = (field_area_m2 / base_unit) * 75
-        area_ratio = total_area_m2 / field_area_m2
-        extra_volume = base_volume * area_ratio * 0.3 * factor
-
-        extra_n = extra_volume if nutrient_type == 'N' else 0
-        extra_p = extra_volume if nutrient_type == 'P' else 0
-        extra_k = extra_volume if nutrient_type == 'K' else 0
-
-        fer_region_data = {"parcel": field.id}
-        serializer = FerRegionCreateSerializer(data=fer_region_data)
-        if not serializer.is_valid():
-            return None, serializer.errors
-        fer_region = serializer.save()
-        fer_region.extra_n_used = extra_n
-        fer_region.extra_p_used = extra_p
-        fer_region.extra_k_used = extra_k
-        fer_region.save()
-        return fer_region, None
-
 
 class SimpleUnifiedDetectionView(APIView):
     """简单统一检测：只返回检测结果，不关联地块"""

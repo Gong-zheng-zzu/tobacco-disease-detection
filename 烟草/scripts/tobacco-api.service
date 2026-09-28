@@ -1,0 +1,17 @@
+[Unit]
+Description=Tobacco Django API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tobacco/backend
+Environment=DJANGO_ALLOWED_HOSTS=8.152.4.105
+Environment=DJANGO_DEBUG=0
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/tobacco/backend/.venv/bin/gunicorn drf_test002.wsgi:application --bind 127.0.0.1:8000 --workers 1 --threads 2 --timeout 180
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -64,7 +64,7 @@
             <div class="stat-percentage">{{ diseaseStats.baixingbing_pct }}</div>
           </div>
           <div class="stat-item">
-            <div class="stat-title">黄叶病</div>
+            <div class="stat-title">花叶病</div>
             <div class="stat-value">{{ diseaseStats.huayebing }}</div>
             <div class="stat-percentage">{{ diseaseStats.huayebing_pct }}</div>
           </div>
@@ -74,7 +74,7 @@
             <div class="stat-percentage">{{ diseaseStats.yanqingchong_pct }}</div>
           </div>
           <div class="stat-item">
-            <div class="stat-title">叶厚病</div>
+            <div class="stat-title">野火病</div>
             <div class="stat-value">{{ diseaseStats.yehuobing }}</div>
             <div class="stat-percentage">{{ diseaseStats.yehuobing_pct }}</div>
           </div>
@@ -93,7 +93,7 @@
             <span class="nutrient-value">{{ diseaseStats.baixingbing }}</span>
           </div>
           <div class="nutrient">
-            <span class="nutrient-label">黄叶病记录</span>
+            <span class="nutrient-label">花叶病记录</span>
             <div class="progress-container">
               <div class="progress-bar" :style="{ width: barPercents.huayebing + '%', backgroundColor: '#42A5F5' }"></div>
             </div>
@@ -107,7 +107,7 @@
             <span class="nutrient-value">{{ diseaseStats.yanqingchong }}</span>
           </div>
           <div class="nutrient">
-            <span class="nutrient-label">叶厚病记录</span>
+            <span class="nutrient-label">野火病记录</span>
             <div class="progress-container">
               <div class="progress-bar" :style="{ width: barPercents.yehuobing + '%', backgroundColor: '#f9595c' }"></div>
             </div>
@@ -124,7 +124,7 @@ import axios from 'axios';
 import * as echarts from 'echarts';
 import { API_BASE } from '@/config/api';
 
-const DISEASE_TYPES = ['白星病', '黄叶病', '烟青虫', '叶厚病'];
+const DISEASE_TYPES = ['白星病', '花叶病', '烟青虫', '野火病'];
 const SERIES_COLORS = ['#66BB6A', '#42A5F5', '#FFA726', '#f9595c'];
 const SERIES_COLOR_RGBA = [
   'rgba(102, 187, 106, 0.2)',
@@ -135,9 +135,9 @@ const SERIES_COLOR_RGBA = [
 
 const DISEASE_KEY_MAP = {
   白星病: 'baixingbing',
-  黄叶病: 'huayebing',
+  花叶病: 'huayebing',
   烟青虫: 'yanqingchong',
-  叶厚病: 'yehuobing'
+  野火病: 'yehuobing'
 };
 
 export default {
@@ -150,7 +150,7 @@ export default {
       diseaseData: [],
       allDiseaseData: [],
       chartInstance: null,
-      legendSelected: { 白星病: true, 黄叶病: true, 烟青虫: true, 叶厚病: true },
+      legendSelected: { 白星病: true, 花叶病: true, 烟青虫: true, 野火病: true },
       legendItems: DISEASE_TYPES,
       legendItemsColors: SERIES_COLORS,
       replayChartAnimation: true,
@@ -442,7 +442,7 @@ export default {
       this.chartInstance.resize();
     },
     resetChartLegend() {
-      this.legendSelected = { 白星病: true, 黄叶病: true, 烟青虫: true, 叶厚病: true };
+      this.legendSelected = { 白星病: true, 花叶病: true, 烟青虫: true, 野火病: true };
     },
     prepareChartReplay() {
       this.replayChartAnimation = true;

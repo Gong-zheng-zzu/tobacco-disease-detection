@@ -2,9 +2,9 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class User(models.Model):
-    username = models.CharField(max_length=16, verbose_name="用户名")
-    password = models.CharField(max_length=16, verbose_name="密码")
-    phone = models.CharField(max_length=13, verbose_name="电话号")
+    username = models.CharField(max_length=16, unique=True, verbose_name="用户名")
+    password = models.CharField(max_length=128, verbose_name="密码")
+    phone = models.CharField(max_length=13, unique=True, verbose_name="电话号")
     token = models.CharField(max_length=64, verbose_name="TOKEN", null=True, blank=True, db_index=True)
     device_count = models.IntegerField(verbose_name="设备数", default=0)
     field_count = models.IntegerField(verbose_name="地块数", default=0)
@@ -14,6 +14,93 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
+
+
+class Role(models.Model):
+    code = models.CharField(max_length=32, unique=True)
+    name = models.CharField(max_length=64)
+    description = models.CharField(max_length=256, blank=True, default='')
+
+    class Meta:
+        db_table = 'app2_role'
+        ordering = ['code']
+
+    def __str__(self):
+        return self.name
+
+
+class UserRole(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_roles')
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='user_roles')
+    is_primary = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'app2_user_role'
+        constraints = [models.UniqueConstraint(fields=['user', 'role'], name='unique_user_role')]
+
+
+class HarvestBatch(models.Model):
+    STATUS_CHOICES = [('pending', '待入库'), ('stored', '已入库'), ('sent_to_curing', '已送烘烤')]
+    parcel = models.ForeignKey('LandParcel', on_delete=models.PROTECT, related_name='harvest_batches')
+    batch_no = models.CharField(max_length=40, unique=True)
+    harvest_date = models.DateField()
+    growth_stage = models.CharField(max_length=32, default='成熟期')
+    leaf_position = models.CharField(max_length=64, blank=True, default='')
+    fresh_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    operator = models.ForeignKey(User, on_delete=models.PROTECT, related_name='harvest_batches')
+    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default='pending')
+    image = models.ImageField(upload_to='harvest/%Y/%m/%d/', blank=True, null=True)
+    notes = models.TextField(blank=True, default='')
+    is_demo = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'app2_harvest_batch'
+        ordering = ['-harvest_date', '-id']
+
+
+class CuringBatch(models.Model):
+    STAGE_CHOICES = [('yellowing', '变黄'), ('color_fixing', '定色'), ('stem_drying', '干筋'), ('complete', '已完成')]
+    STATUS_CHOICES = [('planned', '待开始'), ('running', '进行中'), ('complete', '已完成'), ('abnormal', '异常')]
+    batch_no = models.CharField(max_length=40, unique=True)
+    harvest_batch = models.ForeignKey(HarvestBatch, on_delete=models.PROTECT, related_name='curing_batches')
+    barn_name = models.CharField(max_length=64)
+    loaded_at = models.DateTimeField(null=True, blank=True)
+    stage = models.CharField(max_length=24, choices=STAGE_CHOICES, default='yellowing')
+    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default='planned')
+    temperature = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    humidity = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    loss_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    operator = models.ForeignKey(User, on_delete=models.PROTECT, related_name='curing_batches')
+    notes = models.TextField(blank=True, default='')
+    is_demo = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'app2_curing_batch'
+        ordering = ['-created_at']
+
+
+class QualityInspection(models.Model):
+    STATUS_CHOICES = [('pending', '待质检'), ('passed', '已通过'), ('recheck', '需复检')]
+    harvest_batch = models.ForeignKey(HarvestBatch, on_delete=models.PROTECT, related_name='quality_inspections')
+    purchase_no = models.CharField(max_length=40, unique=True)
+    inspected_at = models.DateTimeField(auto_now_add=True)
+    weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    grade = models.CharField(max_length=32, blank=True, default='')
+    moisture = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    appearance = models.CharField(max_length=128, blank=True, default='')
+    impurity_weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default='pending')
+    inspector = models.ForeignKey(User, on_delete=models.PROTECT, related_name='quality_inspections')
+    image = models.ImageField(upload_to='quality/%Y/%m/%d/', blank=True, null=True)
+    notes = models.TextField(blank=True, default='')
+    is_demo = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'app2_quality_inspection'
+        ordering = ['-inspected_at']
 
 
 class LandParcel(models.Model):
@@ -57,8 +144,12 @@ class NutrientDeficiency(models.Model):
         max_digits=3,
         decimal_places=2,
         default=0.5,
+        null=True,
+        blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(1)]
     )
+    verification_source = models.CharField(max_length=24, blank=True, default="")
+    verification_reference = models.CharField(max_length=256, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

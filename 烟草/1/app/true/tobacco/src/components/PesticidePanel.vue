@@ -50,9 +50,9 @@
             <select v-model="newRecord.diseaseType" class="modal-select">
               <option value="">请选择病害种类</option>
               <option value="白星病">白星病</option>
-              <option value="黄叶病">黄叶病</option>
+              <option value="花叶病">花叶病</option>
               <option value="烟青虫">烟青虫</option>
-              <option value="叶厚病">叶厚病</option>
+              <option value="野火病">野火病</option>
             </select>
           </div>
           <div v-if="newRecord.diseaseType" class="form-row preview-row">
@@ -76,16 +76,9 @@ import { API_BASE } from '@/config/api';
 const MU_M2 = 2000 / 3;
 const DISEASE_CONFIG = {
   '白星病': { pesticideName: '50% 多菌灵可湿性粉剂', perMu: 100, unit: '克' },
-  '黄叶病': { pesticideName: '99% 磷酸二氢钾', perMu: 100, unit: '克' },
+  '花叶病': { pesticideName: '待农技人员确认', unit: '', notes: '请确认病因和当地防治方案后再施药' },
   '烟青虫': { pesticideName: '4.5% 高效氯氰菊酯乳油', perMu: 30, unit: '毫升' },
-  '叶厚病': {
-    pesticideName: '硼肥+磷酸二氢钾',
-    unit: '克',
-    parts: [
-      { name: '硼肥', perMuMin: 20, perMuMax: 30, unit: '克' },
-      { name: '磷酸二氢钾', perMu: 100, unit: '克' }
-    ]
-  }
+  '野火病': { pesticideName: '待农技人员确认', unit: '', notes: '请确认病因和当地防治方案后再施药' }
 };
 
 export default {
@@ -124,23 +117,11 @@ export default {
       const p = this.parcelList.find(x => x.id === id);
       return p && p.area != null ? Number(p.area) : 0;
     },
-    calcYehoubingDosage(area) {
-      const config = DISEASE_CONFIG['叶厚病'];
-      if (!config || !config.parts || !area) return { display: '', dosage: 0, notes: '' };
-      const mu = area / MU_M2;
-      const [boron, phosph] = config.parts;
-      const bMin = Math.round(mu * boron.perMuMin * 10) / 10;
-      const bMax = Math.round(mu * boron.perMuMax * 10) / 10;
-      const pVal = Math.round(mu * phosph.perMu * 10) / 10;
-      const display = `${boron.name} ${bMin}～${bMax} ${boron.unit}+${phosph.name} ${pVal} ${phosph.unit}`;
-      const notes = `${bMin}～${bMax} ${boron.unit}+${pVal} ${phosph.unit}`;
-      return { display, dosage: pVal, notes };
-    },
     calcDosageByArea(diseaseType) {
       const area = this.getCurrentFieldArea();
       if (!area || !DISEASE_CONFIG[diseaseType]) return 0;
       const config = DISEASE_CONFIG[diseaseType];
-      if (config.parts) return 0;
+      if (!config.perMu) return 0;
       const mu = area / MU_M2;
       return Math.round(mu * config.perMu * 100) / 100;
     },
@@ -152,9 +133,8 @@ export default {
         const response = await axios.get(`${API_BASE}/user/${uid}/pesticide_records/${fieldId}/`);
         if (response.data.code === 200) {
           this.records = (response.data.data || []).map(record => {
-            const isYehoubing = record.target_pest === '叶厚病';
-            const dosageDisplay = isYehoubing && record.notes
-              ? record.notes
+            const dosageDisplay = record.pesticide_name === '待农技人员确认'
+              ? '待确认'
               : `${record.dosage} ${record.unit || ''}`.trim();
             return {
               id: record.id,
@@ -200,13 +180,9 @@ export default {
       const config = DISEASE_CONFIG[diseaseType];
       let pesticideName = config.pesticideName;
       let dosage = 0;
-      let unit = config.unit || '克';
-      let notes = '';
-      if (config.parts) {
-        const r = this.calcYehoubingDosage(area);
-        dosage = r.dosage;
-        notes = r.notes;
-      } else {
+      let unit = config.unit || '';
+      let notes = config.notes || '';
+      if (config.perMu) {
         dosage = this.calcDosageByArea(diseaseType);
       }
       this.showCreateModal = false;
@@ -254,10 +230,7 @@ export default {
       const config = DISEASE_CONFIG[t];
       const area = this.getCurrentFieldArea();
       if (!area || area <= 0) return `${config.pesticideName}，请先确认地块面积`;
-      if (config.parts) {
-        const r = this.calcYehoubingDosage(area);
-        return `${config.pesticideName}，用量：${r.display}（按当前地块 ${area} m² 折算）`;
-      }
+      if (!config.perMu) return `${config.pesticideName}，${config.notes}`;
       const dosage = this.calcDosageByArea(t);
       return `${config.pesticideName}，用量约 ${dosage} ${config.unit}（按当前地块 ${area} m² 折算）`;
     }

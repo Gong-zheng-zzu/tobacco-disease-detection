@@ -1,5 +1,5 @@
 """
-大豆缺磷分类 - ResNet18 高精度版本
+烟草缺钾分类 - ResNet18 高精度版本
 基于 目标检测_本地获取.py 重写，使用 ResNet18 替代 AlexNet 提升准确度
 """
 import cv2
@@ -11,8 +11,8 @@ from PIL import Image
 import os
 import numpy as np
 
-# 类别名（0=健康, 1=缺磷）
-CLASS_NAMES = ["健康", "缺磷"]
+# 类别名（0=健康, 1=缺钾；原目录名缺磷是历史命名错误）
+CLASS_NAMES = ["健康", "缺钾"]
 
 
 def build_model(num_classes=2, weights_path=None, device=None):

@@ -14,7 +14,7 @@ export default {
   components: { Nav },
   computed: {
     showNav() {
-      return !['/login', '/register'].includes(this.$route.path);
+      return !['/login', '/register', '/workspaces'].includes(this.$route.path);
     }
   }
 };

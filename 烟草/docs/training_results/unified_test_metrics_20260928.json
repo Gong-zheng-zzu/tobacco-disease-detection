@@ -1,0 +1,35 @@
+{
+  "model": "runs/yolo_training/unified_6class_20260912_104707/weights/best.pt",
+  "dataset": "unified_tobacco_dataset",
+  "split": "test",
+  "images": 753,
+  "instances": 3000,
+  "imgsz": 640,
+  "metrics": {
+    "precision": 0.9568565696,
+    "recall": 0.9300081375,
+    "mAP50": 0.9635880826,
+    "mAP50_95": 0.8677703988
+  },
+  "class_order": [
+    "baixingbing",
+    "huayebing",
+    "yanqingchong",
+    "yehuobing",
+    "healthy",
+    "deficiency_k"
+  ],
+  "class_ap50": {
+    "baixingbing": 0.96393,
+    "huayebing": 0.9728,
+    "yanqingchong": 0.89613,
+    "yehuobing": 0.95866,
+    "healthy": 0.995,
+    "deficiency_k": 0.995
+  },
+  "limitations": [
+    "The dataset has no nitrogen or phosphorus classes.",
+    "AP50 is a detection metric, not an image-level field accuracy.",
+    "The smoke-worm class needs additional independently labeled tobacco images before claiming a higher score."
+  ]
+}

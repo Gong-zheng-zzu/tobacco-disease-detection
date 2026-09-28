@@ -2,11 +2,7 @@
   <div class="recognition-page">
     <div class="recognition-card">
       <div class="section-header light-green">
-        <span class="section-title"><i class="icon-dot"></i>{{ detectionMode === 'deficiency' ? '缺素识别中心' : '病虫害识别中心' }}</span>
-        <div class="detection-mode-toggle">
-          <button type="button" class="toggle-btn" :class="{ active: detectionMode === 'deficiency' }" @click="detectionMode = 'deficiency'">缺素检测</button>
-          <button type="button" class="toggle-btn" :class="{ active: detectionMode === 'disease' }" @click="detectionMode = 'disease'">病虫害检测</button>
-        </div>
+        <span class="section-title"><i class="icon-dot"></i>烟草叶片识别</span>
       </div>
 
       <div class="field-select-row">
@@ -15,6 +11,14 @@
           <option value="">请选择地块</option>
           <option v-for="f in fieldList" :key="f.id" :value="f.id">{{ f.name || f.id + '号地块' }}</option>
         </select>
+      </div>
+
+      <div class="demo-samples">
+        <div class="demo-title">演示样本（点击即可识别）</div>
+        <button v-for="sample in demoSamples" :key="sample.name" class="demo-sample" type="button" @click="useDemoSample(sample)">
+          <img :src="sample.src" :alt="sample.label">
+          <span>{{ sample.label }}</span>
+        </button>
       </div>
 
       <div v-if="uploadError && !displayImageUrl" class="field-error-msg">{{ uploadError }}</div>
@@ -31,7 +35,7 @@
         </div>
 
         <div class="result-area">
-          <div v-if="displayImageUrl" class="result-label" :class="{ 'label-healthy': recognitionResult === '健康', 'label-deficient': recognitionResult === '缺磷', 'label-loading': recognitionResult === '识别中...', 'label-disease': recognitionResult && (recognitionResult.startsWith('检测到') || recognitionResult === '未检测到病虫害'), 'label-error': uploadError }">
+          <div v-if="displayImageUrl" class="result-label" :class="{ 'label-healthy': recognitionResult === '图片提示：健康', 'label-loading': recognitionResult === '识别中...', 'label-disease': recognitionResult && recognitionResult.startsWith('图片提示：'), 'label-error': uploadError }">
             <template v-if="recognitionResult">{{ recognitionResult }}</template>
             <template v-else-if="uploadError">{{ uploadError }}</template>
           </div>
@@ -53,6 +57,33 @@
           <input type="file" accept="image/*" class="upload-input" ref="fileInput" @change="handleFileUpload">
         </div>
       </div>
+
+      <form class="verification-form" @submit.prevent="submitConfirmedDeficiency">
+        <div class="verification-title">缺素复核记录</div>
+        <div class="verification-fields">
+          <label>确认结果
+            <select v-model="confirmedNutrient" required>
+              <option value="">请选择</option>
+              <option value="N">缺氮</option>
+              <option value="P">缺磷</option>
+              <option value="K">缺钾</option>
+            </select>
+          </label>
+          <label>依据来源
+            <select v-model="verificationSource" required>
+              <option value="">请选择</option>
+              <option value="lab_report">检测报告</option>
+              <option value="expert_review">专家复核</option>
+            </select>
+          </label>
+          <label class="reference-field">报告编号或复核人及日期
+            <input v-model.trim="verificationReference" maxlength="256" required placeholder="填写可核对的依据">
+          </label>
+        </div>
+        <label class="verification-check"><input v-model="verificationAcknowledged" type="checkbox" required> 我已核对上述依据</label>
+        <button class="btn-confirm" type="submit" :disabled="confirmBusy || !selectedFieldId">{{ confirmBusy ? '保存中...' : '保存确认结果' }}</button>
+        <p v-if="confirmationMessage" class="confirmation-message" role="status">{{ confirmationMessage }}</p>
+      </form>
     </div>
   </div>
 </template>
@@ -75,13 +106,24 @@ export default {
       cameraActive: false,
       mediaStream: null,
       fieldList: [],
-      detectionMode: 'deficiency'
+      confirmedNutrient: '',
+      verificationSource: '',
+      verificationReference: '',
+      verificationAcknowledged: false,
+      confirmBusy: false,
+      confirmationMessage: '',
+      demoSamples: [
+        { name: '白星病_1', label: '白星病', src: './demo-images/白星病_1.jpg' },
+        { name: '花叶病_1', label: '花叶病', src: './demo-images/花叶病_1.jpg' },
+        { name: '野火病_1', label: '野火病', src: './demo-images/野火病_1.jpg' },
+        { name: '烟青虫_1', label: '烟青虫', src: './demo-images/烟青虫_1.jpg' }
+      ]
     };
   },
   mounted() {
     this.loadFieldList();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.stopCamera();
   },
   methods: {
@@ -95,11 +137,8 @@ export default {
           this.selectedFieldId = this.fieldList[0].id;
         }
       } catch (e) {
-        this.fieldList = [
-          { id: 1, name: '1号地块' },
-          { id: 2, name: '2号地块' }
-        ];
-        if (!this.selectedFieldId) this.selectedFieldId = 1;
+        this.fieldList = [];
+        this.uploadError = '地块加载失败，请检查网络连接';
       }
     },
     async startCamera() {
@@ -150,15 +189,12 @@ export default {
         if (!blob) return;
         const formData = new FormData();
         formData.append('image', blob, 'capture.jpg');
-        formData.append('mode', this.detectionMode);
         try {
           const res = await axios.post(
-            `${API_BASE}/user/${uid}/field/${this.selectedFieldId}/nd/`,
+            `${API_BASE}/user/${uid}/field/${this.selectedFieldId}/unified_detect/`,
             formData
           );
-          this.recognitionResult = res.data.result || '识别完成';
-          this.recognitionExtraMessage = res.data.message || '';
-          await this.addPesticideRecordsFromDiseaseResult(res.data.result);
+          await this.showDetectionResult(res.data);
         } catch (err) {
           this.recognitionResult = '';
           this.recognitionExtraMessage = '';
@@ -166,11 +202,21 @@ export default {
         }
       }, 'image/jpeg', 0.9);
     },
-    async addPesticideRecordsFromDiseaseResult(result) {
-      if (!result || typeof result !== 'string' || (!result.startsWith('检测到：') && !result.startsWith('检测到:'))) return;
-      const raw = result.replace(/^检测到[：:]?\s*/, '').trim();
-      if (!raw) return;
-      const diseaseTypes = raw.split(/[、,，]/).map(s => s.trim()).filter(Boolean);
+    async showDetectionResult(data) {
+      const result = data?.result || {};
+      const detected = [...(result.diseases || [])];
+      if (result.is_deficiency_k) detected.push('疑似缺钾');
+      this.recognitionResult = detected.length ? `图片提示：${detected.join('、')}` : result.is_healthy ? '图片提示：健康' : '未检测到明确问题';
+      const confidence = Object.entries(result.confidence || {})
+        .map(([name, score]) => `${name} ${(score * 100).toFixed(1)}%`)
+        .join('、');
+      const message = result.is_deficiency_k
+        ? '缺素结论需检测报告或专家复核'
+        : data?.message;
+      this.recognitionExtraMessage = [message, confidence && `模型分数（非准确率）：${confidence}`].filter(Boolean).join(' | ');
+      await this.addPesticideRecordsFromDiseaseResult(result.diseases || []);
+    },
+    async addPesticideRecordsFromDiseaseResult(diseaseTypes) {
       if (diseaseTypes.length === 0) return;
       const uid = localStorage.getItem('userId') || 1;
       const fieldId = this.selectedFieldId;
@@ -190,6 +236,35 @@ export default {
         console.warn('自动添加农药记录失败', e);
       }
     },
+    async submitConfirmedDeficiency() {
+      if (!this.selectedFieldId || !this.verificationAcknowledged || this.confirmBusy) return;
+      const uid = localStorage.getItem('userId');
+      const token = localStorage.getItem('token');
+      if (!uid || !token) {
+        this.confirmationMessage = '请重新登录后提交';
+        return;
+      }
+      this.confirmBusy = true;
+      this.confirmationMessage = '';
+      try {
+        const res = await axios.post(
+          `${API_BASE}/user/${uid}/field/${this.selectedFieldId}/deficiencies/confirmed/`,
+          {
+            nutrient_type: this.confirmedNutrient,
+            verification_source: this.verificationSource,
+            verification_reference: this.verificationReference
+          },
+          { headers: { 'X-User-Token': token } }
+        );
+        this.confirmationMessage = res.data.message || '确认结果已保存';
+        this.verificationReference = '';
+        this.verificationAcknowledged = false;
+      } catch (err) {
+        this.confirmationMessage = err.response?.data?.error || '保存失败，请检查网络后重试';
+      } finally {
+        this.confirmBusy = false;
+      }
+    },
     retakePhoto() {
       this.displayImageUrl = '';
       this.recognitionResult = '';
@@ -200,7 +275,7 @@ export default {
     triggerFileInput() {
       this.$refs.fileInput?.click();
     },
-    handleFileUpload(event) {
+      handleFileUpload(event) {
       const file = event.target.files?.[0];
       if (!file) return;
       const uid = localStorage.getItem('userId') || 1;
@@ -217,12 +292,9 @@ export default {
         this.recognitionResult = '识别中...';
         const formData = new FormData();
         formData.append('image', file);
-        formData.append('mode', this.detectionMode);
-        axios.post(`${API_BASE}/user/${uid}/field/${this.selectedFieldId}/nd/`, formData)
+        axios.post(`${API_BASE}/user/${uid}/field/${this.selectedFieldId}/unified_detect/`, formData)
           .then(async (res) => {
-            this.recognitionResult = res.data.result || '识别完成';
-            this.recognitionExtraMessage = res.data.message || '';
-            await this.addPesticideRecordsFromDiseaseResult(res.data.result);
+            await this.showDetectionResult(res.data);
             this.$refs.fileInput.value = '';
           })
           .catch(err => {
@@ -232,6 +304,37 @@ export default {
           });
       };
       reader.readAsDataURL(file);
+    },
+    async useDemoSample(sample) {
+      if (!this.selectedFieldId) {
+        this.uploadError = '请先选择地块';
+        return;
+      }
+      try {
+        const response = await fetch(sample.src);
+        const blob = await response.blob();
+        const file = new File([blob], `${sample.name}.jpg`, { type: blob.type || 'image/jpeg' });
+        await this.handleDemoFile(file);
+      } catch (e) {
+        this.uploadError = '演示样本加载失败，请检查网络';
+      }
+    },
+    async handleDemoFile(file) {
+      const uid = localStorage.getItem('userId') || 1;
+      this.stopCamera();
+      this.displayImageUrl = URL.createObjectURL(file);
+      this.uploadError = '';
+      this.recognitionExtraMessage = '';
+      this.recognitionResult = '识别中...';
+      const formData = new FormData();
+      formData.append('image', file);
+      try {
+        const res = await axios.post(`${API_BASE}/user/${uid}/field/${this.selectedFieldId}/unified_detect/`, formData);
+        await this.showDetectionResult(res.data);
+      } catch (err) {
+        this.recognitionResult = '';
+        this.uploadError = err.response?.data?.error || '识别失败，请重试';
+      }
     }
   }
 };
@@ -315,6 +418,43 @@ export default {
   color: #d84b4b;
   font-size: 13px;
   margin-bottom: 8px;
+}
+
+.demo-samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px solid #e1f0e6;
+  border-radius: 10px;
+  background: #f8fdf9;
+}
+
+.demo-title {
+  width: 100%;
+  color: #2d5a3d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.demo-sample {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #c7e5d2;
+  border-radius: 8px;
+  padding: 4px 7px 4px 4px;
+  color: #236641;
+  background: #fff;
+  font-size: 12px;
+}
+
+.demo-sample img {
+  width: 30px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 5px;
 }
 
 .camera-wrap {
@@ -422,4 +562,14 @@ export default {
 .label-loading { background: #e6f2ff; color: #2d70b7; }
 .label-disease { background: #fff2de; color: #c4721e; }
 .label-error { background: #ffe8ea; color: #d24f58; }
+.verification-form { border-top: 1px solid #dcebe1; margin-top: 16px; padding-top: 14px; }
+.verification-title { color: #24563b; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.verification-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.verification-fields label { display: flex; flex-direction: column; gap: 5px; color: #385946; font-size: 13px; min-width: 0; }
+.verification-fields .reference-field { grid-column: 1 / -1; }
+.verification-fields select, .verification-fields input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #c7dbcf; border-radius: 6px; padding: 9px; background: #fff; color: #243e2e; font-size: 14px; }
+.verification-check { display: flex; align-items: center; gap: 7px; margin: 12px 0; color: #385946; font-size: 13px; }
+.btn-confirm { border: 0; border-radius: 6px; padding: 10px 14px; background: #238251; color: #fff; font-size: 13px; font-weight: 600; }
+.btn-confirm:disabled { opacity: 0.55; }
+.confirmation-message { color: #24563b; font-size: 13px; margin: 9px 0 0; }
 </style>

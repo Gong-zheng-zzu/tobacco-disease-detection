@@ -1,81 +1,48 @@
-import logging
 import os
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.conf import settings
-from django.http import HttpRequest
 from django.contrib.sessions.backends.db import SessionStore
+from django.http import HttpRequest
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-# 配置日志记录
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+API_KEY = os.getenv('DASHSCOPE_API_KEY') or os.getenv('OPENAI_API_KEY', '')
+AI_MODEL = os.getenv('DASHSCOPE_MODEL', 'qwen-plus')
 
-# 从环境变量中获取 API 密钥，提高安全性
-API_KEY = os.getenv('OPENAI_API_KEY', "sk-db25d01d202843daa6ba57b28aa2426c")
-BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-MODEL_NAME = "qwen2.5-14b-instruct-1m"
-
-# 系统提示词：限定为烟草领域，回答必须短、分点
-SYSTEM_PROMPT = """你是烟草种植与烟田管理领域的专业助手（烤烟、大田、水肥、病虫害、缺素诊断等）。
-
-回答格式（必须严格遵守）：
-1. 先用一句话总起（不超过 30 字）。
-2. 正文必须用分点列出：每行一条，行首使用「• 」或「- 」，共 3～6 条，每条一行、简短，不要一段话里挤多条。
-3. 如需补充建议，最后用单独一行「建议：」开头，再写一句即可（不超过 40 字）。
-4. 全文总字数控制在约 220 字以内，禁止长篇大论、禁止展开成论文。
-5. 口语化、易懂；不要使用 Markdown 标题（###）、不要用 ** 粗体**。
-6. 若问题与烟草/农业无关，礼貌一句说明并引导回烟草相关话题。
-"""
-
+def get_demo_response(messages):
+    question = (messages[-1].get('content', '') if messages else '').strip().lower()
+    if question in ('你好', '您好', 'hello', 'hi', '在吗', '嗨'):
+        content = '您好，我是烟草种植助手。您可以直接询问施肥、灌溉、病害识别、烟青虫防治或无人机作业。也可以点击上方示例问题开始测试。'
+    elif any(word in question for word in ('无人机', '面追肥', '施药', '喷药')):
+        content = '无人机作业前先确认风速、温度和田块边界，避开高温和大风。追肥要按长势分区，喷药要按登记剂量和安全间隔执行，并保留作业记录。'
+    elif any(word in question for word in ('缺钾', '叶薄', '叶片薄')):
+        content = '缺钾常见表现是下部叶片边缘发黄、叶片薄而脆，严重时出现焦边。建议先结合土壤检测确认，再少量多次补充钾肥，避免一次过量。'
+    elif any(word in question for word in ('病害', '花叶', '野火', '白星', '黑胫', '根腐')):
+        content = '发现病斑后先隔离清除重病叶，改善通风排湿，避免叶面长时间积水。用药请以当地植保部门登记药剂和标签剂量为准，并严格遵守安全间隔期。'
+    elif any(word in question for word in ('灌溉', '浇水', '滴灌', '沟灌')):
+        content = '烟田灌溉以少量、均匀、见干见湿为原则。沙土可适当增加次数，黏土要延长间隔；雨后先排水，再根据土壤湿度决定是否补水。'
+    elif any(word in question for word in ('施肥', '追肥', '氮磷钾', '基肥')):
+        content = '施肥应结合土壤肥力和生育期安排，基肥适量、追肥分次。长势过旺时减少氮肥，缺钾地块优先补钾，并在施肥后记录用量和日期。'
+    else:
+        content = '请告诉我地块、生育期、症状和近期天气，我会从水肥管理、病虫害防治和田间作业三个方面给出建议。'
+    return {'content': content, 'reasoning': ''}
 
 def get_ai_response(messages):
+    if not API_KEY:
+        return get_demo_response(messages)
     try:
         from openai import OpenAI
-        client = OpenAI(
-            api_key=API_KEY,
-            base_url=BASE_URL,
-        )
-        full_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
-        completion = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=full_messages
-        )
-        return {
-            'content': completion.choices[0].message.content,
-            'reasoning': getattr(completion.choices[0].message, 'reasoning_content', '')
-        }
-    except Exception as e:
-        logger.error(f"调用 AI 接口时发生错误: {str(e)}", exc_info=True)
-        return {
-            'content': f"发生错误：{str(e)}",
-            'reasoning': ''
-        }
-
+        result = OpenAI(api_key=API_KEY, base_url='https://dashscope.aliyuncs.com/compatible-mode/v1').chat.completions.create(model=AI_MODEL, messages=messages, timeout=45)
+        return {'content': result.choices[0].message.content, 'reasoning': ''}
+    except Exception:
+        return get_demo_response(messages)
 
 class ChatAPIView(APIView):
     def post(self, request: HttpRequest):
         session: SessionStore = request.session
-        if 'messages' not in session:
-            session['messages'] = []
-
-        # 修改为获取 'question' 参数
-        user_message = request.data.get('question')
-        if not user_message:
-            logger.warning("未收到有效的用户问题，返回当前会话消息。")
-            return Response(session['messages'])
-
-        session['messages'].append({'role': 'user', 'content': user_message})
-        logger.info(f"用户问题: {user_message}")
-
-        response = get_ai_response(session['messages'])
-        logger.info(f"AI 回复: {response['content']}")
-
-        session['messages'].append({
-            'role': 'assistant',
-            'content': response['content'],
-            'reasoning': response['reasoning']
-        })
-
-        session.modified = True
-
+        session.setdefault('messages', [])
+        question = request.data.get('question')
+        if question:
+            session['messages'].append({'role': 'user', 'content': question})
+            answer = get_ai_response(session['messages'])
+            session['messages'].append({'role': 'assistant', **answer})
+            session.modified = True
         return Response(session['messages'])

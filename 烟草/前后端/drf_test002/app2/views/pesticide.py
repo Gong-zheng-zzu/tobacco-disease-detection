@@ -7,35 +7,13 @@ from ..serializer import PesticideCreateSerializer, PesticideDetailSerializer
 
 # 1 亩 = 2000/3 平方米，与前端一致
 MU_M2 = 2000 / 3
-# 病害种类对应的农药与每亩用量（与 Pesticide.vue 的 DISEASE_CONFIG 一致）
+# 病害种类对应的农药与每亩用量；未核定方案只创建待确认记录
 DISEASE_CONFIG = {
     "白星病": {"pesticide_name": "50% 多菌灵可湿性粉剂", "per_mu": 100, "unit": "克"},
-    "黄叶病": {"pesticide_name": "99% 磷酸二氢钾", "per_mu": 100, "unit": "克"},
+    "花叶病": {"pesticide_name": "待农技人员确认", "unit": "", "notes": "请确认病因和当地防治方案后再施药"},
     "烟青虫": {"pesticide_name": "4.5% 高效氯氰菊酯乳油", "per_mu": 30, "unit": "毫升"},
-    "叶厚病": {
-        "pesticide_name": "硼肥+磷酸二氢钾",
-        "unit": "克",
-        "parts": [
-            {"name": "硼肥", "per_mu_min": 20, "per_mu_max": 30, "unit": "克"},
-            {"name": "磷酸二氢钾", "per_mu": 100, "unit": "克"},
-        ],
-    },
+    "野火病": {"pesticide_name": "待农技人员确认", "unit": "", "notes": "请确认病因和当地防治方案后再施药"},
 }
-
-
-def _calc_yehoubing_dosage(area_m2):
-    """叶厚病：硼肥 20～30 克/亩 + 磷酸二氢钾 100 克/亩，返回 (dosage, notes)。"""
-    cfg = DISEASE_CONFIG["叶厚病"]
-    if not cfg.get("parts") or not area_m2:
-        return Decimal("0"), ""
-    mu = float(area_m2) / MU_M2
-    boron = cfg["parts"][0]
-    phosph = cfg["parts"][1]
-    b_min = round(mu * boron["per_mu_min"] * 10) / 10
-    b_max = round(mu * boron["per_mu_max"] * 10) / 10
-    p_val = round(mu * phosph["per_mu"] * 10) / 10
-    notes = f"{b_min}～{b_max} {boron['unit']}+{p_val} {phosph['unit']}"
-    return Decimal(str(p_val)), notes
 
 
 def _create_pesticide_record_for_disease(field, disease_type):
@@ -47,8 +25,9 @@ def _create_pesticide_record_for_disease(field, disease_type):
     if not cfg:
         return None
     mu = area / MU_M2
-    if cfg.get("parts"):
-        dosage, notes = _calc_yehoubing_dosage(area)
+    if "per_mu" not in cfg:
+        dosage = Decimal("0")
+        notes = cfg["notes"]
         pesticide_name = cfg["pesticide_name"]
         unit = cfg["unit"]
     else:

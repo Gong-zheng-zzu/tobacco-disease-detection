@@ -6,15 +6,16 @@ from datetime import datetime
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, max_length=128)
+
     class Meta:
         model = User
         fields = ['username', 'phone', 'password']
 
 
-class UserLoginSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['username', 'password', 'token']
+class UserLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=16)
+    password = serializers.CharField(write_only=True)
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
@@ -130,7 +131,8 @@ class NDSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NutrientDeficiency
-        fields = ['id', 'parcel_id', 'nutrient_type', 'nutrient_type_display', 'intensity', 'created_at', 'created_at_date']
+        fields = ['id', 'parcel_id', 'nutrient_type', 'nutrient_type_display', 'intensity',
+                  'verification_source', 'verification_reference', 'created_at', 'created_at_date']
 
     def get_created_at_date(self, obj):
         if isinstance(obj.created_at, datetime):

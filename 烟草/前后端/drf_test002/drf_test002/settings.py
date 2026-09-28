@@ -11,10 +11,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-s-6luf8(=*a)_uv^6y$43_gw*b$a@r-_3g9o(&0ny%muzhk_=@"
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', "django-insecure-s-6luf8(=*a)_uv^6y$43_gw*b$a@r-_3g9o(&0ny%muzhk_=@")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', '1') == '1'
+
+# Gunicorn only listens on loopback; Nginx supplies this header for HTTPS traffic.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -24,11 +29,16 @@ ALLOWED_HOSTS = [
     '.app.github.dev',
     '.github.dev',
     '.preview.app.github.dev',
+    '10.193.148.242',
+    '192.168.186.1',
+    '192.168.67.1',
 ]
+ALLOWED_HOSTS += [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if host.strip()]
 
 # Django 4.2 对跨域 POST 需要显式信任来源。
 # 统一检测端点因 authentication_classes=[] 不触发 CSRF，但 admin 登录需要。
 CSRF_TRUSTED_ORIGINS = [
+    'https://8.152.4.105',
     'https://*.app.github.dev',
     'https://*.github.dev',
 ]
@@ -157,6 +167,24 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+REST_FRAMEWORK = {
+    'NUM_PROXIES': 1,
+    'DEFAULT_AUTHENTICATION_CLASSES': ['app2.security.LegacyTokenAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES': ['app2.security.BusinessPermission'],
+    'DEFAULT_THROTTLE_RATES': {
+        'register': '5/hour',
+        'login': '10/minute',
+        'captcha': '30/minute',
+    },
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'tobacco-auth-cache',
+    },
+}
 
 
 # Internationalization

@@ -1,0 +1,6 @@
+[Unit]
+Description=Renew short-lived tobacco IP TLS certificate
+
+[Service]
+Type=oneshot
+ExecStart=/opt/tobacco/certbot-venv/bin/certbot renew --quiet --deploy-hook "/usr/bin/systemctl reload nginx"
