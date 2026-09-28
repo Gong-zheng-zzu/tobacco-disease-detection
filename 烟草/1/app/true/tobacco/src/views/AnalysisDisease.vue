@@ -38,6 +38,7 @@
 
       <div class="chart-container">
         <div id="disease-chart"></div>
+        <p class="chart-note">按农药/病虫记录日期统计；曲线仅连接实际记录，不代表连续监测。</p>
         <div class="chart-legend-custom">
           <span
             v-for="(name, i) in legendItems"
@@ -88,28 +89,28 @@
           <div class="nutrient">
             <span class="nutrient-label">白星病记录</span>
             <div class="progress-container">
-              <div class="progress-bar" :style="{ width: barPercents.baixingbing + '%', backgroundColor: '#66BB6A' }"></div>
+              <div class="progress-bar" :style="{ width: barPercents.baixingbing + '%', backgroundColor: '#1f6f4a' }"></div>
             </div>
             <span class="nutrient-value">{{ diseaseStats.baixingbing }}</span>
           </div>
           <div class="nutrient">
             <span class="nutrient-label">花叶病记录</span>
             <div class="progress-container">
-              <div class="progress-bar" :style="{ width: barPercents.huayebing + '%', backgroundColor: '#42A5F5' }"></div>
+              <div class="progress-bar" :style="{ width: barPercents.huayebing + '%', backgroundColor: '#569276' }"></div>
             </div>
             <span class="nutrient-value">{{ diseaseStats.huayebing }}</span>
           </div>
           <div class="nutrient">
             <span class="nutrient-label">烟青虫记录</span>
             <div class="progress-container">
-              <div class="progress-bar" :style="{ width: barPercents.yanqingchong + '%', backgroundColor: '#FFA726' }"></div>
+              <div class="progress-bar" :style="{ width: barPercents.yanqingchong + '%', backgroundColor: '#b28a3f' }"></div>
             </div>
             <span class="nutrient-value">{{ diseaseStats.yanqingchong }}</span>
           </div>
           <div class="nutrient">
             <span class="nutrient-label">野火病记录</span>
             <div class="progress-container">
-              <div class="progress-bar" :style="{ width: barPercents.yehuobing + '%', backgroundColor: '#f9595c' }"></div>
+              <div class="progress-bar" :style="{ width: barPercents.yehuobing + '%', backgroundColor: '#9d665b' }"></div>
             </div>
             <span class="nutrient-value">{{ diseaseStats.yehuobing }}</span>
           </div>
@@ -122,15 +123,16 @@
 <script>
 import axios from 'axios';
 import * as echarts from 'echarts';
+import { markRaw } from 'vue';
 import { API_BASE } from '@/config/api';
 
 const DISEASE_TYPES = ['白星病', '花叶病', '烟青虫', '野火病'];
-const SERIES_COLORS = ['#66BB6A', '#42A5F5', '#FFA726', '#f9595c'];
+const SERIES_COLORS = ['#1f6f4a', '#569276', '#b28a3f', '#9d665b'];
 const SERIES_COLOR_RGBA = [
-  'rgba(102, 187, 106, 0.2)',
-  'rgba(66, 165, 245, 0.2)',
-  'rgba(255, 167, 38, 0.2)',
-  'rgba(249, 89, 92, 0.2)'
+  'rgba(31, 111, 74, 0.18)',
+  'rgba(86, 146, 118, 0.18)',
+  'rgba(178, 138, 63, 0.18)',
+  'rgba(157, 102, 91, 0.18)'
 ];
 
 const DISEASE_KEY_MAP = {
@@ -201,7 +203,7 @@ export default {
     this._onResize = () => this.chartInstance?.resize();
     window.addEventListener('resize', this._onResize);
   },
-  beforeDestroy() {
+  beforeUnmount() {
     if (this._onResize) window.removeEventListener('resize', this._onResize);
     this.chartInstance?.dispose();
   },
@@ -366,7 +368,7 @@ export default {
         animationEasing: 'cubicOut',
         animationDurationUpdate: 350,
         animationEasingUpdate: 'linear',
-        title: { text: '病害情况变化图', left: 'center', textStyle: { fontSize: 22, color: '#333333', fontWeight: 'bold' }, padding: [8, 0] },
+        title: { text: '病害情况变化图', left: 'center', textStyle: { fontSize: 18, color: '#24372b', fontWeight: 600 }, padding: [8, 0] },
         backgroundColor: '#ffffff',
         tooltip: { trigger: 'item', backgroundColor: 'rgba(0, 0, 0, 0.85)', borderColor: '#333', textStyle: { color: '#fff', fontSize: 12 }, formatter: '{b}<br/>{a}: {c} 条' },
         legend: { show: false },
@@ -396,7 +398,7 @@ export default {
           type: 'value',
           minInterval: 1,
           animation: false,
-          name: '病害记录数',
+          name: '',
           nameTextStyle: { color: '#333333', fontSize: 14, padding: [0, 0, 10, 0] },
           axisLabel: { color: '#333333', fontSize: 12, formatter: (value) => Number.isInteger(value) ? value : Math.round(value) },
           axisLine: { show: true, lineStyle: { color: '#cccccc' } },
@@ -411,20 +413,11 @@ export default {
             showSymbol: visible,
             symbol: 'circle',
             symbolSize: 6,
-            smooth: 0.45,
-            smoothMonotone: 'x',
-            connectNulls: true,
+            smooth: false,
             lineStyle: { color: SERIES_COLORS[i], width: 2.5, opacity: visible ? 1 : 0 },
             itemStyle: { color: SERIES_COLORS[i], borderColor: '#ffffff', borderWidth: 1.5 },
             label: { show: false },
             emphasis: { showSymbol: true },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: SERIES_COLOR_RGBA[i] },
-                { offset: 1, color: 'rgba(0,0,0,0)' }
-              ]),
-              opacity: visible ? 1 : 0
-            }
           };
         })
       };
@@ -433,7 +426,6 @@ export default {
       if (!this.chartInstance) return;
       try {
         const option = this.getChartOption();
-        if (this.replayChartAnimation) this.chartInstance.clear();
         this.chartInstance.setOption(option, { notMerge: true, lazyUpdate: false });
         this.replayChartAnimation = false;
       } catch (e) {
@@ -454,7 +446,7 @@ export default {
     initChart() {
       const chartDom = document.getElementById('disease-chart');
       if (!chartDom) return;
-      this.chartInstance = echarts.init(chartDom);
+      this.chartInstance = markRaw(echarts.init(chartDom));
       this.applyChart();
     }
   }
@@ -467,24 +459,28 @@ export default {
   padding: 12px 16px;
   gap: 12px;
   min-height: auto;
-  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  background: var(--color-page);
 }
 
 .left-section {
   flex: 1;
-  background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
-  color: white;
+  min-width: 0;
+  background: #fff;
+  color: var(--color-text);
   padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.2);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
 }
 
 .right-section {
   flex: 1;
+  min-width: 0;
   background-color: #ffffff;
   padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.1);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
 }
 
 .filter-bar {
@@ -505,19 +501,19 @@ export default {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  background-color: #a5d6a7;
-  color: #1b5e20;
+  background-color: #f2f6f3;
+  color: #1f6f4a;
   font-weight: 500;
   transition: background-color 0.3s;
 }
 
 .button:hover {
-  background-color: #c8e6c9;
+  background-color: #e5eee7;
 }
 
 .button.active {
-  background-color: #fff;
-  color: #2e7d32;
+  background-color: #1f6f4a;
+  color: #fff;
 }
 
 .field-select-area.inline {
@@ -544,7 +540,7 @@ export default {
   margin-bottom: 8px;
   font-size: 14px;
   padding: 6px 10px;
-  background: rgba(255,255,255,0.25);
+  background: #f2f6f3;
   border-radius: 8px;
 }
 
@@ -557,10 +553,11 @@ export default {
   background-color: #ffffff;
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
 }
+.chart-note{margin:6px 0 0;text-align:center;color:#63776a;font-size:13px}
 
 #disease-chart {
   flex: 1;
@@ -612,7 +609,7 @@ export default {
 
 .recent-deficiency {
   padding: 12px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: #f7f9f7;
   border-radius: 8px;
 }
 
@@ -624,21 +621,19 @@ export default {
 
 .status {
   font-size: 20px;
-  color: #FFCA28;
+  color: #755313;
+  font-weight: 600;
   margin-bottom: 15px;
 }
 
 .report-content {
-  background-color: #ffffff;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 8px 0 16px;
 }
 
 .report-title {
   margin-bottom: 10px;
-  font-size: 22px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 600;
   color: #333;
 }
 
@@ -727,5 +722,20 @@ export default {
   text-align: right;
   color: #666;
   font-size: 14px;
+}
+@media (max-width: 900px) {
+  .analysis-page { flex-direction: column; padding: 8px; }
+  .chart-container { height: 360px; }
+}
+@media (max-width: 560px) {
+  .filter-bar { flex-direction: column; }
+  .filter-buttons { width: 100%; gap: 8px; }
+  .filter-buttons .button { flex: 1; padding: 8px; }
+  .field-select-area.inline { width: 100%; }
+  .deficiency-stats { gap: 6px; }
+  .stat-item { padding: 10px 4px; }
+  .nutrient-levels { padding: 0; gap: 14px; }
+  .nutrient { gap: 8px; }
+  .nutrient-label, .nutrient-value { min-width: 62px; }
 }
 </style>

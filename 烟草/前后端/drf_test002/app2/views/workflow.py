@@ -109,7 +109,7 @@ class HarvestBatchView(SecureAPIView):
         total = queryset.count()
         items = list(queryset[(page - 1) * page_size:page * page_size].values(
             'id', 'batch_no', 'parcel_id', 'parcel__name', 'harvest_date', 'growth_stage',
-            'leaf_position', 'fresh_weight', 'status', 'notes'))
+            'leaf_position', 'fresh_weight', 'status', 'notes', 'is_demo'))
         return Response(envelope({'items': items, 'page': page, 'page_size': page_size, 'total': total}))
 
     def post(self, request):
@@ -133,7 +133,7 @@ class CuringBatchView(SecureAPIView):
         queryset = (CuringBatch.objects.all() if active_role(request) == 'admin' else CuringBatch.objects.filter(operator=request.user)).select_related('harvest_batch')
         if request.query_params.get('status'):
             queryset = queryset.filter(status=request.query_params['status'])
-        items = list(queryset.values('id', 'batch_no', 'harvest_batch_id', 'barn_name', 'loaded_at', 'stage', 'status', 'temperature', 'humidity', 'loss_weight'))
+        items = list(queryset.values('id', 'batch_no', 'harvest_batch_id', 'barn_name', 'loaded_at', 'stage', 'status', 'temperature', 'humidity', 'loss_weight', 'is_demo'))
         return Response(envelope({'items': items, 'total': len(items)}))
 
     def post(self, request):
@@ -157,7 +157,7 @@ class QualityInspectionView(SecureAPIView):
         queryset = (QualityInspection.objects.all() if active_role(request) == 'admin' else QualityInspection.objects.filter(inspector=request.user)).select_related('harvest_batch')
         if request.query_params.get('status'):
             queryset = queryset.filter(status=request.query_params['status'])
-        items = list(queryset.values('id', 'purchase_no', 'harvest_batch_id', 'inspected_at', 'weight', 'grade', 'moisture', 'appearance', 'impurity_weight', 'status', 'notes'))
+        items = list(queryset.values('id', 'purchase_no', 'harvest_batch_id', 'inspected_at', 'weight', 'grade', 'moisture', 'appearance', 'impurity_weight', 'status', 'notes', 'is_demo'))
         return Response(envelope({'items': items, 'total': len(items)}))
 
     def post(self, request):

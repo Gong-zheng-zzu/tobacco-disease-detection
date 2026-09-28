@@ -197,7 +197,7 @@ export default {
       });
 
       return visible.map(item => {
-        if (!item.perMu) return item;
+        if (item.perMuMin == null || item.perMuMax == null) return item;
         if (!hasArea) {
           return {
             ...item,
@@ -220,6 +220,7 @@ export default {
         ? this.pesticideSchemesConfig.filter(item => diseaseSet.has(item.target))
         : this.pesticideSchemesConfig;
       return visible.map(item => {
+        if (item.perMu == null && !item.parts) return item;
         if (!hasArea) {
           if (item.parts) {
             return { ...item, dosage: '硼肥20-30克/亩 + 磷酸二氢钾100克/亩' };
@@ -308,8 +309,7 @@ export default {
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
-  font-family: 'Inter', 'Roboto', sans-serif;
-  animation: fadeIn 0.5s ease-in;
+  color: #263b30;
 }
 
 @keyframes fadeIn {
@@ -322,10 +322,10 @@ export default {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background-color: #ffe4e1;
-  padding: 12px;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  padding: 20px;
+  border: 1px solid #e3e9e4;
+  border-radius: 8px;
   max-width: 100%;
   overflow: hidden;
 }
@@ -370,8 +370,8 @@ export default {
   font-size: 16px;
   font-weight: 600;
   background-color: #FFFFFF;
-  color: #008B8B;
-  border: 1px solid #008B8B;
+  color: #1f6f4a;
+  border: 1px solid #b8d1c1;
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -379,11 +379,11 @@ export default {
 }
 
 .strategy-btn:hover {
-  background-color: #E0F7FA;
+  background-color: #f0f5f1;
 }
 
 .strategy-btn.is-active {
-  background-color: #008B8B;
+  background-color: #1f6f4a;
   color: #FFFFFF;
 }
 
@@ -402,7 +402,7 @@ export default {
 .drone-link-bar {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(0, 139, 139, 0.2);
+  border-top: 1px solid #e5ebe6;
   flex-shrink: 0;
 }
 
@@ -413,7 +413,7 @@ export default {
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #008b8b;
+  background: #1f6f4a;
   color: #fff;
   font-size: 14px;
   font-weight: 600;
@@ -429,8 +429,9 @@ export default {
 .scheme-item {
   background-color: #fff;
   padding: 12px;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  border: 1px solid #e6ece7;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
   transition: transform 0.2s, box-shadow 0.2s;
   min-width: 0;
   word-break: break-word;
@@ -438,7 +439,7 @@ export default {
 
 .scheme-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
 }
 
 .scheme-title {
@@ -471,11 +472,11 @@ export default {
 }
 
 .note {
-  background-color: #FFF3E0;
+  background-color: #f7f5ee;
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 14px;
-  color: #EF6C00;
+  color: #685735;
 }
 
 @media (max-width: 768px) {
@@ -501,8 +502,8 @@ export default {
   }
 }
 
-:focus {
-  outline: 2px solid #4DB6AC;
+:focus-visible {
+  outline: 2px solid #1f6f4a;
   outline-offset: 2px;
 }
 </style>

@@ -56,7 +56,7 @@
           </div>
           <div class="record-row record-row--time">
             <span class="lbl">{{ activeTab === 'basic' ? '施肥时间:' : '追肥时间:' }}</span>
-            {{ record.fertilizationTime }}
+            <time :title="record.fertilizationTime">{{ formatShortDate(record.fertilizationTime) }}</time>
           </div>
           <div v-if="activeTab === 'basic'" class="record-row record-row--muted">
             <span class="lbl">生长阶段:</span> {{ record.growthStage }}
@@ -80,7 +80,7 @@
             <span class="lbl">总消耗量:</span> {{ formatKg(record.total) }}
           </div>
         </div>
-        <button type="button" class="btn-delete-card" @click="deleteRecord(record)">删除</button>
+        <button type="button" class="btn-delete-card" title="删除记录" aria-label="删除记录" @click="deleteRecord(record)"><Trash2 :size="16" /></button>
         </div>
       </div>
     </div>
@@ -158,9 +158,10 @@ import axios from 'axios';
 import { API_BASE } from '@/config/api';
 import PesticidePanel from '@/components/PesticidePanel.vue';
 import { notify } from '@/utils/notify';
+import { Trash2 } from '@lucide/vue';
 
 export default {
-  components: { PesticidePanel },
+  components: { PesticidePanel, Trash2 },
   data() {
     return {
       activeTab: 'basic',
@@ -361,7 +362,11 @@ export default {
     formatKg(value) {
       const n = parseFloat(value);
       const x = Number.isFinite(n) ? n : 0;
-      return `${x.toFixed(2)}Kg`;
+      return `${x.toFixed(2)} kg`;
+    },
+    formatShortDate(value) {
+      const match = String(value || '').match(/(?:\d{4}年)?(\d{2})月(\d{2})日\s*(\d{2}:\d{2})/);
+      return match ? `${match[1]}-${match[2]} ${match[3]}` : value;
     },
     displayMainNutrientType(record) {
       const c = (record.combinedNutrientType || '').trim();
@@ -674,6 +679,10 @@ export default {
 .record-item-card:last-child{border-bottom:0}
 .record-item-card:hover{background:#f9fbf9}
 .record-item-main{font-variant-numeric:tabular-nums}
+.record-row--fertilizer{color:#755313}
+.btn-delete-card{width:34px;height:34px;display:grid;place-items:center;padding:0;background:#fff;color:#a84039;border:1px solid #efd6d3}
+.btn-delete-card:hover{background:#fff3f1}
+@media(min-width:900px){.record-item-main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;row-gap:6px}}
 .record-empty{background:#fff;color:var(--color-muted)}
 .btn-green,.btn-confirm,.tab-btn.active{background:var(--color-primary)}
 .btn-green:hover:not(:disabled),.btn-confirm:hover{background:var(--color-primary-hover)}

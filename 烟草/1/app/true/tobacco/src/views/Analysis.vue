@@ -48,6 +48,7 @@
       <!-- 缺素变化图：自定义图例点击控制折线显隐 -->
       <div class="chart-container">
         <div id="deficiency-chart"></div>
+        <p class="chart-note">按识别记录日期统计；曲线仅连接实际记录，不代表连续监测。</p>
         <div class="chart-legend-custom">
           <span
             v-for="(name, i) in legendItems"
@@ -98,7 +99,7 @@
             <div class="progress-container">
               <div class="progress-bar" :style="{
                 width: barPercents.N + '%',
-                backgroundColor: '#4CAF50'
+                backgroundColor: '#1f6f4a'
               }"></div>
             </div>
             <span class="nutrient-value">{{ deficiencyStats.N }}</span>
@@ -110,7 +111,7 @@
             <div class="progress-container">
               <div class="progress-bar" :style="{
                 width: barPercents.P + '%',
-                backgroundColor: '#2196F3'
+                backgroundColor: '#5d9c78'
               }"></div>
             </div>
             <span class="nutrient-value">{{ deficiencyStats.P }}</span>
@@ -122,7 +123,7 @@
             <div class="progress-container">
               <div class="progress-bar" :style="{
                 width: barPercents.K + '%',
-                backgroundColor: '#FF9800'
+                backgroundColor: '#b28a3f'
               }"></div>
             </div>
             <span class="nutrient-value">{{ deficiencyStats.K }}</span>
@@ -137,11 +138,12 @@
 import axios from 'axios';
 import searchIcon from '@/assets/icons/search-icon.png';
 import * as echarts from 'echarts';
+import { markRaw } from 'vue';
 import { API_BASE } from '@/config/api';
 
 const SERIES_NAMES = ['缺氮', '缺磷', '缺钾'];
-const SERIES_COLORS = ['#4CAF50', '#2196F3', '#FF9800'];
-const SERIES_COLOR_RGBA = ['rgba(76, 175, 80, 0.2)', 'rgba(33, 150, 243, 0.2)', 'rgba(255, 152, 0, 0.2)'];
+const SERIES_COLORS = ['#1f6f4a', '#5d9c78', '#b28a3f'];
+const SERIES_COLOR_RGBA = ['rgba(31, 111, 74, 0.18)', 'rgba(93, 156, 120, 0.18)', 'rgba(178, 138, 63, 0.18)'];
 
 export default {
   name: 'AnalysisPage',
@@ -202,7 +204,7 @@ export default {
     this._onResize = () => this.chartInstance?.resize();
     window.addEventListener('resize', this._onResize);
   },
-  beforeDestroy() {
+  beforeUnmount() {
     if (this._onResize) window.removeEventListener('resize', this._onResize);
     this.chartInstance?.dispose();
   },
@@ -369,7 +371,7 @@ export default {
         animationEasing: 'cubicOut',
         animationDurationUpdate: 350,
         animationEasingUpdate: 'linear',
-        title: { text: '缺素情况变化图', left: 'center', textStyle: { fontSize: 22, color: '#333333', fontWeight: 'bold' }, padding: [8, 0] },
+        title: { text: '缺素情况变化图', left: 'center', textStyle: { fontSize: 18, color: '#24372b', fontWeight: 600 }, padding: [8, 0] },
         backgroundColor: '#ffffff',
         tooltip: { trigger: 'item', backgroundColor: 'rgba(0, 0, 0, 0.85)', borderColor: '#333', textStyle: { color: '#fff', fontSize: 12 }, formatter: '{b}<br/>{a}: {c} 条' },
         legend: { show: false },
@@ -399,7 +401,7 @@ export default {
           type: 'value',
           minInterval: 1,
           animation: false,
-          name: '缺素记录数',
+          name: '',
           nameTextStyle: { color: '#333333', fontSize: 14, padding: [0, 0, 10, 0] },
           axisLabel: { color: '#333333', fontSize: 12, formatter: (value) => Number.isInteger(value) ? value : Math.round(value) },
           axisLine: { show: true, lineStyle: { color: '#cccccc' } },
@@ -414,18 +416,11 @@ export default {
             showSymbol: visible,
             symbol: 'circle',
             symbolSize: 6,
-            smooth: true,
+            smooth: false,
             lineStyle: { color: SERIES_COLORS[i], width: 2.5, opacity: visible ? 1 : 0 },
             itemStyle: { color: SERIES_COLORS[i], borderColor: '#ffffff', borderWidth: 1.5 },
             label: { show: false },
             emphasis: { showSymbol: true },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: SERIES_COLOR_RGBA[i] },
-                { offset: 1, color: 'rgba(0,0,0,0)' }
-              ]),
-              opacity: visible ? 1 : 0
-            }
           };
         })
       };
@@ -436,10 +431,6 @@ export default {
       if (!this.chartInstance) return;
       try {
         const option = this.getChartOption();
-        if (this.replayChartAnimation) {
-          // 切换地块/模式时先清空，再按新数据重绘，触发从左到右的入场动画
-          this.chartInstance.clear();
-        }
         this.chartInstance.setOption(option, { notMerge: true, lazyUpdate: false });
         this.replayChartAnimation = false;
       } catch (e) {
@@ -468,7 +459,7 @@ export default {
     initChart() {
       const chartDom = document.getElementById('deficiency-chart');
       if (!chartDom) return;
-      this.chartInstance = echarts.init(chartDom);
+      this.chartInstance = markRaw(echarts.init(chartDom));
       this.applyChart();
     }
   }
@@ -481,24 +472,28 @@ export default {
   padding: 12px 16px;
   gap: 12px;
   min-height: auto;
-  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  background: var(--color-page);
 }
 
 .left-section {
   flex: 1;
-  background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
-  color: white;
+  min-width: 0;
+  background: #fff;
+  color: var(--color-text);
   padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.2);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
 }
 
 .right-section {
   flex: 1;
+  min-width: 0;
   background-color: #ffffff;
   padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(45, 90, 61, 0.1);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
 }
 
 /* 顶部筛选工具条：按钮 + 单个地块搜索区域并排放置 */
@@ -520,19 +515,19 @@ export default {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  background-color: #a5d6a7;
-  color: #1b5e20;
+  background-color: #f2f6f3;
+  color: #1f6f4a;
   font-weight: 500;
   transition: background-color 0.3s;
 }
 
 .button:hover {
-  background-color: #c8e6c9;
+  background-color: #e5eee7;
 }
 
 .button.active {
-  background-color: #fff;
-  color: #2e7d32;
+  background-color: #1f6f4a;
+  color: #fff;
 }
 
 .field-select-area {
@@ -571,7 +566,7 @@ export default {
 
 .field-item {
   padding: 8px 12px;
-  background: rgba(255,255,255,0.2);
+  background: #f2f6f3;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
@@ -579,12 +574,12 @@ export default {
 }
 
 .field-item:hover {
-  background: rgba(255,255,255,0.35);
+  background: #e5eee7;
 }
 
 .field-item.selected {
-  background: #fff;
-  color: #2e7d32;
+  background: #e5eee7;
+  color: #1f6f4a;
 }
 
 .field-area {
@@ -594,7 +589,7 @@ export default {
 
 .field-empty {
   margin-top: 8px;
-  color: rgba(255,255,255,0.8);
+  color: #65786a;
   font-size: 14px;
 }
 
@@ -602,7 +597,7 @@ export default {
   margin-bottom: 8px;
   font-size: 14px;
   padding: 6px 10px;
-  background: rgba(255,255,255,0.25);
+  background: #f2f6f3;
   border-radius: 8px;
 }
 
@@ -646,10 +641,11 @@ export default {
   background-color: #ffffff;
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
 }
+.chart-note{margin:6px 0 0;text-align:center;color:#63776a;font-size:13px}
 
 #deficiency-chart {
   flex: 1;
@@ -701,7 +697,7 @@ export default {
 
 .recent-deficiency {
   padding: 12px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: #f7f9f7;
   border-radius: 8px;
 }
 
@@ -713,22 +709,20 @@ export default {
 
 .status {
   font-size: 20px;
-  color: #FFCA28;
+  color: #755313;
+  font-weight: 600;
   margin-bottom: 15px;
 }
 
 
 .report-content {
-  background-color: #ffffff;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 8px 0 16px;
 }
 
 .report-title {
   margin-bottom: 10px;
-  font-size: 22px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 600;
   color: #333;
 }
 
@@ -784,6 +778,7 @@ export default {
 }
 
 .nutrient {
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: 20px;
@@ -821,5 +816,20 @@ export default {
   /* 右对齐 */
   color: #666;
   font-size: 14px;
+}
+@media (max-width: 900px) {
+  .analysis-page { flex-direction: column; padding: 8px; }
+  .chart-container { height: 360px; }
+}
+@media (max-width: 560px) {
+  .filter-bar { flex-direction: column; }
+  .filter-buttons { width: 100%; gap: 8px; }
+  .filter-buttons .button { flex: 1; padding: 8px; }
+  .field-select-area.inline { width: 100%; }
+  .deficiency-stats { gap: 6px; }
+  .stat-item { padding: 10px 4px; }
+  .nutrient-levels { padding: 0; gap: 16px; }
+  .nutrient { gap: 8px; }
+  .nutrient-label, .nutrient-value { min-width: 62px; }
 }
 </style>

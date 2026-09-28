@@ -1,3 +1,5 @@
+import json
+
 from django.core.cache import cache
 from django.test import TestCase
 
@@ -54,3 +56,47 @@ class RoleWorkflowTests(TestCase):
         harvest = self.client.get('/api/workspace/summary/', **self.auth)
         self.assertEqual(harvest.status_code, 200)
         self.assertEqual(harvest.json()['data']['recent'][0]['status_label'], '待入库')
+
+    def test_webview_preflight_allows_active_role_header(self):
+        response = self.client.options(
+            '/api/workspace/summary/',
+            HTTP_ORIGIN='https://appassets.androidplatform.net',
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD='GET',
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS='authorization,x-active-role',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('x-active-role', response['Access-Control-Allow-Headers'])
+
+    def test_workflow_roles_can_read_sources_without_write_access(self):
+        for code in ('curing', 'quality'):
+            UserRole.objects.create(user=self.user, role=Role.objects.get(code=code))
+            response = self.client.get('/api/harvest/batches/', HTTP_X_ACTIVE_ROLE=code, **self.auth)
+            self.assertEqual(response.status_code, 200)
+            response = self.client.post('/api/harvest/batches/', {}, HTTP_X_ACTIVE_ROLE=code, **self.auth)
+            self.assertEqual(response.status_code, 403)
+        response = self.client.get(f'/api/user/{self.user.id}/fields/list/', **self.auth)
+        self.assertEqual(response.status_code, 200)
+
+    def test_role_update_keeps_last_admin_and_allows_reassignment(self):
+        admin_role = Role.objects.get(code='admin')
+        UserRole.objects.create(user=self.user, role=admin_role)
+        response = self.client.post(
+            f'/api/users/{self.user.id}/roles/',
+            json.dumps({'roles': ['harvest'], 'primary_role': 'harvest'}),
+            content_type='application/json',
+            HTTP_X_ACTIVE_ROLE='admin', **self.auth,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['msg'], '至少保留一个管理员')
+        self.assertTrue(UserRole.objects.filter(user=self.user, role=admin_role).exists())
+
+        second_admin = User.objects.create(username='second-admin', password='legacy', phone='13900000002')
+        UserRole.objects.create(user=second_admin, role=admin_role, is_primary=True)
+        response = self.client.post(
+            f'/api/users/{self.user.id}/roles/',
+            json.dumps({'roles': ['harvest'], 'primary_role': 'harvest'}),
+            content_type='application/json',
+            HTTP_X_ACTIVE_ROLE='admin', **self.auth,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(UserRole.objects.filter(user=self.user, role=admin_role).exists())

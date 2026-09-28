@@ -59,6 +59,10 @@ class UserRoleView(SecureAPIView):
         if primary not in codes:
             primary = codes[0]
         with transaction.atomic():
+            if ('admin' not in codes and UserRole.objects.select_for_update()
+                    .filter(user=user, role__code='admin').exists()
+                    and UserRole.objects.filter(role__code='admin').count() <= 1):
+                return Response({'code': 400, 'msg': '至少保留一个管理员'}, status=400)
             UserRole.objects.filter(user=user).delete()
             role_map = {role.code: role for role in Role.objects.filter(code__in=codes)}
             for code in codes:

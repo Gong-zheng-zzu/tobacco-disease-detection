@@ -10,7 +10,9 @@
     <div class="record-cards-wrap">
       <div class="record-list-heading">施药记录: {{ records.length }}</div>
       <div class="record-cards-scroll">
-        <div v-if="records.length === 0" class="record-empty">暂无记录</div>
+        <div v-if="loading" class="record-empty">正在加载记录...</div>
+        <div v-else-if="error" class="record-empty" role="alert">{{ error }} <button type="button" @click="fetchRecords">重试</button></div>
+        <div v-else-if="records.length === 0" class="record-empty">暂无记录</div>
         <div
           v-for="record in records"
           :key="record.id + '-' + record.recordNum"
@@ -21,7 +23,7 @@
               <span class="lbl">记录编号:</span> {{ record.recordNum }}
             </div>
             <div class="record-row record-row--time">
-              <span class="lbl">施药时间:</span> {{ record.sprayTime }}
+              <span class="lbl">施药时间:</span> <time :title="record.sprayTime">{{ formatShortDate(record.sprayTime) }}</time>
             </div>
             <div class="record-row record-row--muted">
               <span class="lbl">病害种类:</span> {{ record.targetPest || '—' }}
@@ -36,7 +38,7 @@
               <span class="lbl">兑水:</span> {{ waterDisplay }}
             </div>
           </div>
-          <button type="button" class="btn-delete-card" @click="deleteRecord(record)">删除</button>
+          <button type="button" class="btn-delete-card" title="删除记录" aria-label="删除记录" @click="deleteRecord(record)"><Trash2 :size="16" /></button>
         </div>
       </div>
     </div>
@@ -73,6 +75,7 @@
 import axios from 'axios';
 import { API_BASE } from '@/config/api';
 import { notify } from '@/utils/notify';
+import { Trash2 } from '@lucide/vue';
 
 const MU_M2 = 2000 / 3;
 const DISEASE_CONFIG = {
@@ -84,6 +87,7 @@ const DISEASE_CONFIG = {
 
 export default {
   name: 'PesticidePanel',
+  components: { Trash2 },
   props: {
     parcelList: { type: Array, default: () => [] },
     selectedFieldId: { type: [Number, String], default: null }
@@ -91,6 +95,8 @@ export default {
   data() {
     return {
       records: [],
+      loading: false,
+      error: '',
       showCreateModal: false,
       newRecord: { diseaseType: '' }
     };
@@ -128,6 +134,8 @@ export default {
     },
     async fetchRecords() {
       if (!this.getFieldId()) return;
+      this.loading = true;
+      this.error = '';
       try {
         const uid = localStorage.getItem('userId') || 1;
         const fieldId = this.getFieldId();
@@ -152,8 +160,15 @@ export default {
           });
         }
       } catch (error) {
-        console.error('获取农药记录失败', error);
+        this.records = [];
+        this.error = error.response?.data?.msg || '农药记录加载失败';
+      } finally {
+        this.loading = false;
       }
+    },
+    formatShortDate(value) {
+      const match = String(value || '').match(/(?:\d{4}年)?(\d{2})月(\d{2})日\s*(\d{2}:\d{2})/);
+      return match ? `${match[1]}-${match[2]} ${match[3]}` : value;
     },
     refresh() {
       this.fetchRecords();
@@ -470,6 +485,12 @@ export default {
 .record-item-card:last-child{border-bottom:0}
 .record-item-card:hover{background:#f9fbf9}
 .record-item-main{font-variant-numeric:tabular-nums}
+.record-row--fertilizer{color:#755313}
+.btn-delete-card{width:34px;height:34px;display:grid;place-items:center;padding:0;background:#fff;color:#a84039;border:1px solid #efd6d3}
+.btn-delete-card:hover{background:#fff3f1}
+.record-empty button{border:0;background:transparent;color:var(--color-primary);text-decoration:underline}
+.modal-content{width:min(440px,calc(100vw - 32px));min-width:0;max-height:calc(100vh - 32px);overflow:auto;border-radius:8px}
+@media(min-width:900px){.record-item-main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;row-gap:6px}}
 .record-empty{background:#fff;color:var(--color-muted)}
 .btn-green,.btn-confirm{background:var(--color-primary)}
 .btn-green:hover:not(:disabled),.btn-confirm:hover{background:var(--color-primary-hover)}

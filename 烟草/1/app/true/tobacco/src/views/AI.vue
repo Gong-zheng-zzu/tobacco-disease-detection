@@ -63,7 +63,7 @@
                   </ol>
                 </template>
                 <template v-else-if="message.role === 'assistant'">
-                  <span class="agent-text-pre">{{ message.content }}</span>
+                  <div class="agent-text" v-html="renderMarkdown(message.content)"></div>
                 </template>
                 <template v-else>{{ message.content }}</template>
               </div>
@@ -87,7 +87,7 @@
               class="input-box"
             >
             <button type="button" @click="sendMessage" :disabled="isLoading" class="send-btn">
-              {{ isLoading ? '发送中...' : '发送' }}
+              {{ isLoading ? '回复中...' : '发送' }}
             </button>
           </div>
         </div>
@@ -98,6 +98,7 @@
 
 <script>
 import axios from 'axios';
+import MarkdownIt from 'markdown-it';
 import userAvatar from '@/assets/icons/user-avatar.png';
 import aiIcon from '@/assets/icons/ai-icon.png';
 import { API_BASE } from '@/config/api';
@@ -120,6 +121,8 @@ const ALL_WELCOME_PRESETS = [
   '打顶抹杈的时机对产量和品质有什么影响？',
   '无人机叶面追肥或施药时要注意什么？'
 ];
+
+const markdown = new MarkdownIt({ html: false, breaks: true, linkify: true });
 
 function pickRandomPresets(pool, count = 3) {
   const copy = [...pool];
@@ -159,6 +162,9 @@ export default {
     }
   },
   methods: {
+    renderMarkdown(content) {
+      return markdown.render(String(content || ''));
+    },
     async sendMessage() {
       const text = this.userInput.trim();
       if (!text || this.isLoading) return;
@@ -245,7 +251,7 @@ export default {
 .ai-page {
   height: calc(100vh - 136px);
   min-height: 0;
-  padding: 6px;
+  padding: 8px;
   box-sizing: border-box;
 }
 
@@ -253,10 +259,11 @@ export default {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(140deg, #0f5f3d, #188a57 48%, #25a76f);
-  box-shadow: 0 14px 30px rgba(22, 84, 56, 0.24);
+  background: #fff;
+  border: 1px solid #e2e8e3;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
 }
 
 .agent-list-panel {
@@ -276,22 +283,22 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 0 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #e8ece8;
+  background: #fff;
 }
 
 .header-avatar {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.95);
+  background: #f3f6f3;
   padding: 4px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .header-title {
-  color: #effaf3;
+  color: #244334;
   font-size: 15px;
   font-weight: 700;
 }
@@ -299,10 +306,10 @@ export default {
 .messages-wrapper {
   flex: 1;
   min-height: 0;
-  padding: 12px;
+  padding: 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background: rgba(255, 255, 255, 0.1);
+  background: #f8faf8;
 }
 
 .message {
@@ -337,7 +344,7 @@ export default {
 .agent-message {
   max-width: 75vw;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 14px;
   line-height: 1.5;
   color: #214533;
@@ -345,12 +352,13 @@ export default {
 }
 
 .user-message {
-  background: #e7f8ef;
+  background: #e7f1e9;
   border-top-right-radius: 4px;
 }
 
 .agent-message {
-  background: #f1f5f9;
+  background: #fff;
+  border: 1px solid #e4ebe5;
   border-top-left-radius: 4px;
 }
 
@@ -369,17 +377,25 @@ export default {
   color: #1f6b44;
   font-weight: 500;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
+  border-bottom: 1px solid #b8d2c0;
 }
 
 .preset-li:active {
   opacity: 0.85;
 }
 
-.agent-text-pre {
-  white-space: pre-wrap;
+.agent-text :deep(p) { margin: 0 0 10px; }
+.agent-text :deep(p:last-child) { margin-bottom: 0; }
+.agent-text :deep(h1), .agent-text :deep(h2), .agent-text :deep(h3) {
+  margin: 16px 0 8px; color: #244334; font-size: 15px; line-height: 1.5; font-weight: 600;
 }
+.agent-text :deep(h1:first-child), .agent-text :deep(h2:first-child), .agent-text :deep(h3:first-child) { margin-top: 0; }
+.agent-text :deep(ul), .agent-text :deep(ol) { margin: 8px 0; padding-left: 22px; }
+.agent-text :deep(li) { margin: 4px 0; }
+.agent-text :deep(a) { overflow-wrap: anywhere; }
+.agent-text :deep(code) { padding: 1px 4px; border-radius: 4px; background: #eef3ee; }
+.agent-text :deep(pre) { max-width: 100%; overflow-x: auto; padding: 10px; background: #f3f6f3; border-radius: 6px; }
 
 .ai-icon,
 .user-avatar {
@@ -403,8 +419,8 @@ export default {
 
 .input-container {
   padding: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #e8ece8;
+  background: #fff;
 }
 
 .input-box-wrapper {
@@ -415,9 +431,9 @@ export default {
 .input-box {
   flex: 1;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 10px;
+  border: 1px solid #cfdcd2;
+  background: #fff;
+  border-radius: 6px;
   padding: 10px 12px;
   font-size: 14px;
   color: #203b2d;
@@ -425,11 +441,11 @@ export default {
 
 .send-btn {
   border: none;
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 10px 14px;
   min-width: 66px;
-  background: #f7ca4a;
-  color: #42500e;
+  background: #1f6f4a;
+  color: #fff;
   font-weight: 700;
   cursor: pointer;
 }
@@ -440,16 +456,16 @@ export default {
 
 @media (min-width: 900px) {
   .ai-page {
-    padding: 10px;
+    padding: 12px;
     height: calc(100vh - 104px);
+    max-width: 1000px;
+    margin: 0 auto;
   }
 
-  .workspace-container {
-    flex-direction: row;
-  }
+  .workspace-container { flex-direction: column; }
 
   .agent-list-panel {
-    display: flex;
+    display: none;
     width: 220px;
     flex-shrink: 0;
     flex-direction: column;

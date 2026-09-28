@@ -82,11 +82,13 @@ class BusinessPermission(BasePermission):
         if path.startswith('/api/workspace/summary/'):
             required = {current}
         elif path.startswith('/api/harvest/'):
-            required = {'harvest'}
+            required = {'harvest', 'curing', 'quality'} if request.method == 'GET' else {'harvest'}
         elif path.startswith('/api/curing/'):
             required = {'curing'}
         elif path.startswith('/api/quality/'):
             required = {'quality'}
+        elif path.startswith('/api/user/') and path.endswith('/fields/list/') and request.method == 'GET':
+            required = {'grower', 'plant_protection', 'harvest'}
         elif '/pesticide' in path or 'unified_detect' in path:
             required = {'plant_protection', 'grower'}
         elif path not in ('/api/me/', '/api/ai/consult/'):

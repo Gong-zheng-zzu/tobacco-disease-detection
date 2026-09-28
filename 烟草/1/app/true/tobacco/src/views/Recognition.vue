@@ -35,11 +35,21 @@
         </div>
 
         <div class="result-area">
+          <div class="result-heading">识别结果</div>
+          <div v-if="!displayImageUrl && !uploadError" class="result-empty">选择演示样本，或上传叶片照片开始识别</div>
           <div v-if="displayImageUrl" class="result-label" :class="{ 'label-healthy': recognitionResult === '图片提示：健康', 'label-loading': recognitionResult === '识别中...', 'label-disease': recognitionResult && recognitionResult.startsWith('图片提示：'), 'label-error': uploadError }">
             <template v-if="recognitionResult">{{ recognitionResult }}</template>
             <template v-else-if="uploadError">{{ uploadError }}</template>
           </div>
-          <div v-if="recognitionExtraMessage" class="result-extra">{{ recognitionExtraMessage }}</div>
+          <div v-if="resultScores.length" class="score-list">
+            <div class="result-subtitle">模型分数 <small>非准确率</small></div>
+            <div v-for="item in resultScores" :key="item.name" class="score-row">
+              <div><span>{{ item.name }}</span><strong>{{ item.percent }}%</strong></div>
+              <div class="score-track"><span :style="{ width: item.percent + '%' }"></span></div>
+            </div>
+          </div>
+          <p v-if="resultAdvice" class="result-advice">{{ resultAdvice }}</p>
+          <p v-if="recordMessage" class="result-record">{{ recordMessage }}</p>
         </div>
 
         <div class="camera-actions">
@@ -103,6 +113,9 @@ export default {
       add_imgIcon,
       recognitionResult: '',
       recognitionExtraMessage: '',
+      resultScores: [],
+      resultAdvice: '',
+      recordMessage: '',
       uploadError: '',
       displayImageUrl: '',
       selectedFieldId: '',
@@ -116,10 +129,10 @@ export default {
       confirmBusy: false,
       confirmationMessage: '',
       demoSamples: [
-        { name: '白星病_1', label: '白星病', src: './demo-images/白星病_1.jpg' },
-        { name: '花叶病_1', label: '花叶病', src: './demo-images/花叶病_1.jpg' },
-        { name: '野火病_1', label: '野火病', src: './demo-images/野火病_1.jpg' },
-        { name: '烟青虫_1', label: '烟青虫', src: './demo-images/烟青虫_1.jpg' }
+        { name: 'white_spot_1', label: '白星病', src: './demo-images/white_spot_1.jpg' },
+        { name: 'mosaic_1', label: '花叶病', src: './demo-images/mosaic_1.jpg' },
+        { name: 'wildfire_1', label: '野火病', src: './demo-images/wildfire_1.jpg' },
+        { name: 'tobacco_budworm_1', label: '烟青虫', src: './demo-images/tobacco_budworm_1.jpg' }
       ]
     };
   },
@@ -130,6 +143,11 @@ export default {
     this.stopCamera();
   },
   methods: {
+    clearResultDetails() {
+      this.resultScores = [];
+      this.resultAdvice = '';
+      this.recordMessage = '';
+    },
     async loadFieldList() {
       try {
         const uid = localStorage.getItem('userId') || 1;
@@ -148,6 +166,7 @@ export default {
       try {
         this.uploadError = '';
         this.recognitionResult = '';
+        this.clearResultDetails();
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         this.mediaStream = stream;
         this.$nextTick(() => {
@@ -186,6 +205,7 @@ export default {
       this.displayImageUrl = canvas.toDataURL('image/jpeg', 0.9);
       this.uploadError = '';
       this.recognitionExtraMessage = '';
+      this.clearResultDetails();
       this.recognitionResult = '识别中...';
       this.stopCamera();
       canvas.toBlob(async (blob) => {
@@ -206,18 +226,19 @@ export default {
       }, 'image/jpeg', 0.9);
     },
     async showDetectionResult(data) {
+      this.clearResultDetails();
       const result = data?.result || {};
       const detected = [...(result.diseases || [])];
       if (result.is_deficiency_k && !this.isPlantProtection) detected.push('疑似缺钾');
       this.recognitionResult = detected.length ? `图片提示：${detected.join('、')}` : result.is_healthy ? '图片提示：健康' : '未检测到明确问题';
-      const confidence = Object.entries(result.confidence || {})
+      this.resultScores = Object.entries(result.confidence || {})
         .filter(([name]) => !this.isPlantProtection || name !== '缺钾')
-        .map(([name, score]) => `${name} ${(score * 100).toFixed(1)}%`)
-        .join('、');
+        .filter(([, score]) => Number.isFinite(Number(score)))
+        .map(([name, score]) => ({ name, percent: Math.max(0, Math.min(100, Number(score) * 100)).toFixed(1) }));
       const message = this.isPlantProtection
         ? (result.diseases?.length ? '请结合现场情况复核病虫害结果' : '未发现明确病虫害，请继续观察')
         : result.is_deficiency_k ? '缺素结论需检测报告或专家复核' : data?.message;
-      this.recognitionExtraMessage = [message, confidence && `模型分数（非准确率）：${confidence}`].filter(Boolean).join(' | ');
+      this.resultAdvice = message || '';
       await this.addPesticideRecordsFromDiseaseResult(result.diseases || []);
     },
     async addPesticideRecordsFromDiseaseResult(diseaseTypes) {
@@ -232,9 +253,7 @@ export default {
         );
         if (res.data.code === 200 && res.data.created > 0) {
           const msg = res.data.msg || `已自动添加 ${res.data.created} 条农药记录`;
-          this.recognitionExtraMessage = this.recognitionExtraMessage
-            ? `${this.recognitionExtraMessage}；${msg}`
-            : msg;
+          this.recordMessage = msg;
         }
       } catch (e) {
         console.warn('自动添加农药记录失败', e);
@@ -274,6 +293,7 @@ export default {
       this.recognitionResult = '';
       this.recognitionExtraMessage = '';
       this.uploadError = '';
+      this.clearResultDetails();
       this.startCamera();
     },
     triggerFileInput() {
@@ -293,6 +313,7 @@ export default {
         this.displayImageUrl = e.target.result;
         this.uploadError = '';
         this.recognitionExtraMessage = '';
+        this.clearResultDetails();
         this.recognitionResult = '识别中...';
         const formData = new FormData();
         formData.append('image', file);
@@ -316,6 +337,7 @@ export default {
       }
       try {
         const response = await fetch(sample.src);
+        if (!response.ok) throw new Error('演示样本不可用');
         const blob = await response.blob();
         const file = new File([blob], `${sample.name}.jpg`, { type: blob.type || 'image/jpeg' });
         await this.handleDemoFile(file);
@@ -329,6 +351,7 @@ export default {
       this.displayImageUrl = URL.createObjectURL(file);
       this.uploadError = '';
       this.recognitionExtraMessage = '';
+      this.clearResultDetails();
       this.recognitionResult = '识别中...';
       const formData = new FormData();
       formData.append('image', file);
@@ -351,8 +374,9 @@ export default {
 
 .recognition-card {
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(31, 79, 51, 0.08);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
   padding: 14px;
 }
 
@@ -361,17 +385,17 @@ export default {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 10px 12px;
   margin-bottom: 10px;
-  color: #fff;
-  background: linear-gradient(100deg, #21a16c, #3fc885);
+  color: #1f6f4a;
+  background: #f2f6f3;
 }
 
 .icon-dot {
   width: 8px;
   height: 8px;
-  background: #fff;
+  background: #c8a45c;
   border-radius: 50%;
   display: inline-block;
   margin-right: 6px;
@@ -542,14 +566,18 @@ export default {
   width: 100%;
   max-width: 420px;
   min-height: 62px;
+  color: #24372b;
 }
+
+.result-heading { font-size: 17px; font-weight: 600; margin: 0 0 14px; }
+.result-empty { color: #62766a; font-size: 14px; padding: 12px 0; }
 
 .result-label {
   border-radius: 10px;
-  text-align: center;
-  padding: 10px;
-  font-size: 14px;
-  font-weight: 700;
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .result-extra {
@@ -560,6 +588,15 @@ export default {
   background: #f4faf7;
   color: #2b7b4f;
 }
+.result-subtitle { display: flex; align-items: baseline; gap: 8px; margin: 22px 0 10px; font-size: 15px; font-weight: 600; }
+.result-subtitle small { color: #718377; font-size: 12px; font-weight: 400; }
+.score-row { margin: 10px 0; }
+.score-row > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.score-row strong { font-variant-numeric: tabular-nums; color: #1f6f4a; }
+.score-track { height: 6px; margin-top: 6px; background: #edf1ec; border-radius: 3px; overflow: hidden; }
+.score-track span { display: block; height: 100%; background: #b28a3f; }
+.result-advice, .result-record { font-size: 14px; line-height: 1.7; margin: 18px 0 0; color: #486554; }
+.result-record { border-top: 1px solid #e1e8e2; padding-top: 12px; }
 
 .label-healthy { background: #daf6e6; color: #1f8a53; }
 .label-deficient { background: #ffe8dc; color: #cf5a2a; }
@@ -576,4 +613,22 @@ export default {
 .btn-confirm { border: 0; border-radius: 6px; padding: 10px 14px; background: #238251; color: #fff; font-size: 13px; font-weight: 600; }
 .btn-confirm:disabled { opacity: 0.55; }
 .confirmation-message { color: #24563b; font-size: 13px; margin: 9px 0 0; }
+@media (min-width: 1024px) {
+  .camera-wrap {
+    display: grid;
+    grid-template-columns: minmax(300px, 420px) minmax(300px, 520px);
+    grid-template-areas: "preview result" "actions result";
+    align-items: start;
+    justify-content: center;
+    column-gap: 32px;
+  }
+  .camera-box { grid-area: preview; }
+  .camera-actions { grid-area: actions; }
+  .result-area {
+    grid-area: result;
+    max-width: none;
+    min-height: 0;
+    padding: 16px 0;
+  }
+}
 </style>

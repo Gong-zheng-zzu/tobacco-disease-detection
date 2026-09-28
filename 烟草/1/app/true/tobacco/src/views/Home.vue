@@ -24,11 +24,12 @@
 
     <div class="left-section">
       <div class="section-header light-green">
-        <span class="section-title"><i class="icon-dot"></i>作业概览</span>
+        <span class="section-title"><i class="icon-dot"></i>作业概览{{ fieldList[0]?.name ? ` · ${fieldList[0].name}` : '' }}</span>
       </div>
       <div class="chart-area">
         <div id="home-chart" class="chart-container"></div>
       </div>
+      <p class="chart-note">{{ stageCoverage }}</p>
       <div class="fertilizer-summary">
         <span>氮肥: {{ fertilizerData.N }} kg</span>
         <span>磷肥: {{ fertilizerData.P }} kg</span>
@@ -42,6 +43,7 @@
 <script>
 import axios from 'axios';
 import * as echarts from 'echarts';
+import { markRaw } from 'vue';
 import weatherIcon from '@/assets/icons/weather_icon/weather-icon.png';
 import temperatureIcon from '@/assets/icons/weather_icon/temperature-icon.png';
 import windSpeedIcon from '@/assets/icons/weather_icon/wind_speed-icon.png';
@@ -57,8 +59,10 @@ export default {
       humidityIcon,
       fertilizerData: { N: '0.00', P: '0.00', K: '0.00' },
       updateDate: '--',
+      stageCoverage: '正在读取基肥记录',
       fieldList: [],
       chartInstance: null,
+      resizeHandler: null,
       weatherData: {
         condition: '加载中...',
         temperature: '--',
@@ -71,20 +75,21 @@ export default {
     this.initChart();
     this.loadFieldList().then(() => this.loadFertilizerData());
     this.loadWeather();
-    window.addEventListener('resize', () => this.chartInstance?.resize());
+    this.resizeHandler = () => this.chartInstance?.resize();
+    window.addEventListener('resize', this.resizeHandler);
   },
-  beforeDestroy() {
+  beforeUnmount() {
     this.chartInstance?.dispose();
-    window.removeEventListener('resize', () => {});
+    window.removeEventListener('resize', this.resizeHandler);
   },
   methods: {
     initChart() {
       const el = document.getElementById('home-chart');
       if (!el) return;
-      this.chartInstance = echarts.init(el);
+      this.chartInstance = markRaw(echarts.init(el));
       const option = {
         title: {
-          text: '施肥用量概览',
+          text: '各生育期已登记基肥用量',
           left: 'center',
           textStyle: { fontSize: 16, color: '#2d5a3d', fontWeight: 600 }
         },
@@ -93,29 +98,32 @@ export default {
         grid: { left: '8%', right: '8%', bottom: '18%', top: '18%', containLabel: true },
         xAxis: {
           type: 'category',
-          data: ['苗期', '还苗期', '伸根期', '旺长期', '成熟期'],
-          axisLine: { lineStyle: { color: '#8bc34a' } },
+          data: ['暂无记录'],
+          axisLine: { lineStyle: { color: '#d5ded7' } },
           axisLabel: { color: '#2d5a3d', interval: 0 }
         },
         yAxis: {
           type: 'value',
           name: '千克/亩',
-          axisLine: { lineStyle: { color: '#8bc34a' } },
-          splitLine: { lineStyle: { color: 'rgba(139,195,74,0.3)' } }
+          axisLine: { lineStyle: { color: '#d5ded7' } },
+          splitLine: { lineStyle: { color: '#e9eeea' } }
         },
         series: [
-          // 使用各阶段需求区间的代表值（中值）进行可视化
-          { name: '氮肥', type: 'bar', data: [1.75, 0.75, 1.75, 3.5, 0], itemStyle: { color: '#66bb6a' } },
-          { name: '磷肥', type: 'bar', data: [1.8, 0.5, 2.5, 4.5, 1.5], itemStyle: { color: '#81c784' } },
-          { name: '钾肥', type: 'bar', data: [3.5, 1.3, 5, 10, 5], itemStyle: { color: '#a5d6a7' } }
+          { name: '氮肥', type: 'bar', barMaxWidth: 60, data: [0], itemStyle: { color: '#1f6f4a' } },
+          { name: '磷肥', type: 'bar', barMaxWidth: 60, data: [0], itemStyle: { color: '#5d9c78' } },
+          { name: '钾肥', type: 'bar', barMaxWidth: 60, data: [0], itemStyle: { color: '#b28a3f' } }
         ]
       };
       this.chartInstance.setOption(option);
     },
     async loadFertilizerData() {
       try {
+        if (!this.fieldList.length) {
+          this.stageCoverage = '暂无地块，添加地块后可查看施肥记录。';
+          return;
+        }
         const uid = localStorage.getItem('userId') || 1;
-        const firstFieldId = this.fieldList[0]?.id ?? 1;
+        const firstFieldId = this.fieldList[0].id;
         const [regionRes, recordRes] = await Promise.all([
           axios.get(`${API_BASE}/user/${uid}/field/${firstFieldId}/fer_regions/`),
           axios.get(`${API_BASE}/user/${uid}/fer_records/${firstFieldId}/`)
@@ -123,6 +131,7 @@ export default {
         const data = regionRes.data.data || [];
         const records = recordRes.data.data || [];
         const f = { N: '0.00', P: '0.00', K: '0.00' };
+        const byStage = { N: [0, 0, 0, 0, 0], P: [0, 0, 0, 0, 0], K: [0, 0, 0, 0, 0] };
         let ferDate = '';
         data.forEach(item => {
           const t = item.combined_nutrient_type || '';
@@ -132,15 +141,38 @@ export default {
           if (!ferDate && item.fer_time) ferDate = item.fer_time.split(' ')[0].replace(/年|月|日/g, ' ').trim();
         });
         records.forEach(item => {
+          const stage = Number(item.growth_stage) - 1;
+          if (stage >= 0 && stage < 5) {
+            byStage.N[stage] += Number(item.base_n_used || 0);
+            byStage.P[stage] += Number(item.base_p_used || 0);
+            byStage.K[stage] += Number(item.base_k_used || 0);
+          }
           f.N = (Number(f.N) + Number(item.base_n_used || 0)).toFixed(2);
           f.P = (Number(f.P) + Number(item.base_p_used || 0)).toFixed(2);
           f.K = (Number(f.K) + Number(item.base_k_used || 0)).toFixed(2);
           if (!ferDate && item.fer_time) ferDate = item.fer_time.split(' ')[0];
         });
         this.fertilizerData = f;
+        const stageNames = ['苗期', '还苗期', '伸根期', '旺长期', '成熟期'];
+        const recorded = stageNames.map((_, index) => index).filter(index =>
+          byStage.N[index] + byStage.P[index] + byStage.K[index] > 0
+        );
+        const visible = recorded.length ? recorded : [0];
+        this.stageCoverage = recorded.length
+          ? `已登记阶段：${recorded.map(index => stageNames[index]).join('、')}；其他阶段暂无基肥记录。`
+          : '当前地块暂无基肥记录。';
+        this.chartInstance?.setOption({
+          xAxis: { data: recorded.length ? visible.map(index => stageNames[index]) : ['暂无记录'] },
+          series: [
+            { name: '氮肥', data: visible.map(index => byStage.N[index]) },
+            { name: '磷肥', data: visible.map(index => byStage.P[index]) },
+            { name: '钾肥', data: visible.map(index => byStage.K[index]) }
+          ]
+        });
         this.updateDate = ferDate || '--';
       } catch (e) {
         console.warn('肥料数据加载失败', e);
+        this.stageCoverage = '基肥记录暂时无法加载，请稍后重试。';
       }
     },
     loadWeather() {
@@ -155,8 +187,8 @@ export default {
             this.weatherData.condition = `${this.weatherCodeToText(cur.weather_code)}（郑州）`;
             return;
           }
-        } catch (e) { /* Keep a usable demo value when the weather provider is unavailable. */ }
-        this.weatherData = { condition: '多云（演示）', temperature: 24, windSpeed: 8, humidity: 58 };
+        } catch (e) { /* The weather service can be temporarily unavailable. */ }
+        this.weatherData = { condition: '暂不可用', temperature: '--', windSpeed: '--', humidity: '--' };
       };
       if (!navigator.geolocation) {
         void fallbackWeather();
@@ -224,12 +256,7 @@ export default {
           this.selectedFieldId = this.fieldList[0].id;
         }
       } catch (e) {
-        this.fieldList = [
-          { id: 1, name: '1号地块', area: 1500 },
-          { id: 2, name: '2号地块', area: 800 },
-          { id: 3, name: '3号地块', area: 1200 }
-        ];
-        if (!this.selectedFieldId) this.selectedFieldId = 1;
+        this.fieldList = [];
       }
       return Promise.resolve();
     },
@@ -248,16 +275,18 @@ export default {
 .home-top-weather {
   grid-column: 1 / -1;
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(31, 79, 51, 0.08);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
   padding: 12px;
 }
 
 .left-section,
 .home-top-weather {
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(31, 79, 51, 0.08);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
   padding: 12px;
 }
 
@@ -273,17 +302,17 @@ export default {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 10px 12px;
   margin: -2px -2px 8px;
-  color: #fff;
-  background: linear-gradient(100deg, #21a16c, #3fc885);
+  color: #1f6f4a;
+  background: #f2f6f3;
 }
 
 .icon-dot {
   width: 8px;
   height: 8px;
-  background: #fff;
+  background: #c8a45c;
   border-radius: 50%;
   display: inline-block;
   margin-right: 6px;
@@ -291,7 +320,7 @@ export default {
 
 .chart-area {
   height: 250px;
-  background: #f7fcf9;
+  background: #fafbfa;
   border-radius: 12px;
   padding: 8px;
 }
@@ -307,11 +336,12 @@ export default {
   gap: 8px;
   margin-top: 10px;
   padding: 10px;
-  background: #f4faf7;
-  border: 1px solid #e4f3ea;
-  border-radius: 12px;
+  background: #f8faf8;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
   font-size: 13px;
 }
+.chart-note { margin: 8px 2px 0; color: #63776a; font-size: 13px; }
 
 .update-time {
   grid-column: 1 / -1;
@@ -356,7 +386,7 @@ export default {
   }
 
   .weather-detail {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 </style>

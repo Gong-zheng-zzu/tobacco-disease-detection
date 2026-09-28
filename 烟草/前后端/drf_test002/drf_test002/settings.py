@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from corsheaders.defaults import default_headers
 
 
 
@@ -69,10 +70,7 @@ CORS_ALLOW_METHODS = [
 ]
 
 # 允许的请求头
-CORS_ALLOW_HEADERS = [
-    'content-type',
-    'authorization'
-]
+CORS_ALLOW_HEADERS = (*default_headers, 'x-active-role', 'x-user-token')
 
 # 允许携带Cookie（如需）
 CORS_ALLOW_CREDENTIALS = True
