@@ -2,7 +2,7 @@
   <div class="recognition-page">
     <div class="recognition-card">
       <div class="section-header light-green">
-        <span class="section-title"><i class="icon-dot"></i>烟草叶片识别</span>
+        <span class="section-title"><i class="icon-dot"></i>{{ isPlantProtection ? '病虫害识别' : '缺素识别' }}</span>
       </div>
 
       <div class="field-select-row">
@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <form class="verification-form" @submit.prevent="submitConfirmedDeficiency">
+      <form v-if="!isPlantProtection" class="verification-form" @submit.prevent="submitConfirmedDeficiency">
         <div class="verification-title">缺素复核记录</div>
         <div class="verification-fields">
           <label>确认结果
@@ -95,6 +95,9 @@ import { API_BASE } from '@/config/api';
 
 export default {
   name: 'RecognitionPage',
+  computed: {
+    isPlantProtection() { return localStorage.getItem('activeRole') === 'plant_protection'; }
+  },
   data() {
     return {
       add_imgIcon,
@@ -205,14 +208,15 @@ export default {
     async showDetectionResult(data) {
       const result = data?.result || {};
       const detected = [...(result.diseases || [])];
-      if (result.is_deficiency_k) detected.push('疑似缺钾');
+      if (result.is_deficiency_k && !this.isPlantProtection) detected.push('疑似缺钾');
       this.recognitionResult = detected.length ? `图片提示：${detected.join('、')}` : result.is_healthy ? '图片提示：健康' : '未检测到明确问题';
       const confidence = Object.entries(result.confidence || {})
+        .filter(([name]) => !this.isPlantProtection || name !== '缺钾')
         .map(([name, score]) => `${name} ${(score * 100).toFixed(1)}%`)
         .join('、');
-      const message = result.is_deficiency_k
-        ? '缺素结论需检测报告或专家复核'
-        : data?.message;
+      const message = this.isPlantProtection
+        ? (result.diseases?.length ? '请结合现场情况复核病虫害结果' : '未发现明确病虫害，请继续观察')
+        : result.is_deficiency_k ? '缺素结论需检测报告或专家复核' : data?.message;
       this.recognitionExtraMessage = [message, confidence && `模型分数（非准确率）：${confidence}`].filter(Boolean).join(' | ');
       await this.addPesticideRecordsFromDiseaseResult(result.diseases || []);
     },

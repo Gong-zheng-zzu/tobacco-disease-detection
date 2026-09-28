@@ -39,7 +39,7 @@ export default {
 
 .main-content {
   margin-top: var(--header-h);
-  padding: 10px 10px calc(64px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 10px calc(90px + env(safe-area-inset-bottom, 0px));
   min-height: calc(100vh - var(--header-h));
   background-color: transparent;
   box-sizing: border-box;
@@ -52,8 +52,14 @@ export default {
 
 @media (min-width: 1024px) {
   .main-content {
+    margin-left: 196px;
     margin-top: var(--header-h);
-    padding: 14px 16px calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 20px 24px 48px;
+  }
+  .main-content.no-nav {
+    margin-left: 0;
+    margin-top: 0;
+    padding: 0;
   }
 }
 </style>

@@ -13,6 +13,14 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+axios.interceptors.response.use(undefined, (error) => {
+  if (error.response?.status === 401 && localStorage.getItem('token')) {
+    ['token', 'userId', 'username', 'roles', 'activeRole'].forEach(key => localStorage.removeItem(key));
+    if (router.currentRoute.value.path !== '/login') router.replace('/login');
+  }
+  return Promise.reject(error);
+});
+
 const app = createApp(App);
 app.use(router);
 app.mount('#app');

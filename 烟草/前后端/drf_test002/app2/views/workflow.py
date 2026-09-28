@@ -5,7 +5,8 @@ from django.utils.dateparse import parse_date
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ..models import CuringBatch, HarvestBatch, LandParcel, QualityInspection
+from ..models import (CuringBatch, Fer_record, HarvestBatch, LandParcel,
+                      NutrientDeficiency, Pesticide_record, QualityInspection)
 from .roles import SecureAPIView
 from ..security import active_role
 
@@ -37,24 +38,31 @@ class WorkspaceSummaryView(SecureAPIView):
         harvest = HarvestBatch.objects.all() if is_admin else HarvestBatch.objects.filter(operator=request.user)
         curing = CuringBatch.objects.all() if is_admin else CuringBatch.objects.filter(operator=request.user)
         quality = QualityInspection.objects.all() if is_admin else QualityInspection.objects.filter(inspector=request.user)
+        recent = []
         if role == 'harvest':
             metrics = [
                 {'label': '待入库批次', 'value': harvest.filter(status='pending').count(), 'hint': '等待称重确认'},
                 {'label': '今日鲜重', 'value': harvest.filter(harvest_date=timezone.now().date()).aggregate(v=Sum('fresh_weight'))['v'] or 0, 'hint': '以现场称重为准'},
                 {'label': '已送烘烤', 'value': harvest.filter(status='sent_to_curing').count(), 'hint': '可追踪批次'},
             ]
+            recent = [{'label': batch.batch_no, 'status_label': batch.get_status_display(), 'is_demo': batch.is_demo}
+                      for batch in harvest.order_by('-harvest_date')[:5]]
         elif role == 'curing':
             metrics = [
                 {'label': '进行中烤房', 'value': curing.filter(status='running').count(), 'hint': '需要记录温湿度'},
                 {'label': '当前异常', 'value': curing.filter(status='abnormal').count(), 'hint': '需要及时处理'},
                 {'label': '已完成批次', 'value': curing.filter(status='complete').count(), 'hint': '本账号记录'},
             ]
+            recent = [{'label': batch.batch_no, 'status_label': batch.get_status_display(), 'is_demo': batch.is_demo}
+                      for batch in curing.order_by('-created_at')[:5]]
         elif role == 'quality':
             metrics = [
                 {'label': '待质检', 'value': quality.filter(status='pending').count(), 'hint': '等待入场检验'},
                 {'label': '今日称重', 'value': quality.filter(inspected_at__date=timezone.now().date()).aggregate(v=Sum('weight'))['v'] or 0, 'hint': '以现场称重为准'},
                 {'label': '需复检', 'value': quality.filter(status='recheck').count(), 'hint': '待复核处理'},
             ]
+            recent = [{'label': inspection.purchase_no, 'status_label': inspection.get_status_display(),
+                       'is_demo': inspection.is_demo} for inspection in quality.order_by('-inspected_at')[:5]]
         elif role == 'admin':
             from ..models import User, Role, Device
             metrics = [
@@ -62,14 +70,34 @@ class WorkspaceSummaryView(SecureAPIView):
                 {'label': '启用角色', 'value': Role.objects.count(), 'hint': '角色配置'},
                 {'label': '在线设备', 'value': Device.objects.filter(status='在线').count(), 'hint': '设备状态'},
             ]
-        else:
+            recent = [{'label': batch.batch_no, 'status_label': batch.get_status_display(), 'is_demo': batch.is_demo}
+                      for batch in harvest.order_by('-harvest_date')[:5]]
+        elif role == 'plant_protection':
+            records = Pesticide_record.objects.filter(field_id__user=request.user)
+            occurrences = records.exclude(target_pest__isnull=True).exclude(target_pest='')
             metrics = [
-                {'label': '采收批次', 'value': harvest.count(), 'hint': '关联地块批次'},
-                {'label': '烘烤批次', 'value': curing.count(), 'hint': '批次流转'},
-                {'label': '质检记录', 'value': quality.count(), 'hint': '质量追溯'},
+                {'label': '病虫害相关记录', 'value': occurrences.count(), 'hint': '按已登记防治对象统计'},
+                {'label': '农药登记', 'value': records.count(), 'hint': '查看施药与防治记录'},
+                {'label': '待人工确认', 'value': records.filter(pesticide_name='待农技人员确认').count(),
+                 'hint': '用药前核对当地防治方案'},
             ]
-        return Response(envelope({'role': role, 'metrics': metrics, 'demo': True,
-                                  'recent': list(harvest.order_by('-harvest_date').values('batch_no', 'status')[:5])}))
+            recent = [{'label': record.target_pest or record.pesticide_name,
+                       'status_label': record.field_id.name, 'is_demo': False}
+                      for record in records.select_related('field_id').order_by('-spray_time')[:5]]
+        elif role == 'grower':
+            parcels = LandParcel.objects.filter(user=request.user)
+            fertilizer = Fer_record.objects.filter(field_id__user=request.user)
+            deficiencies = NutrientDeficiency.objects.filter(parcel__user=request.user)
+            metrics = [
+                {'label': '管理地块', 'value': parcels.count(), 'hint': '查看地块农情'},
+                {'label': '施肥记录', 'value': fertilizer.count(), 'hint': '已登记的施肥作业'},
+                {'label': '缺素复核', 'value': deficiencies.count(), 'hint': '按人工确认记录统计'},
+            ]
+            recent = [{'label': record.field_id.name, 'status_label': record.fer_time.strftime('%m-%d %H:%M'),
+                       'is_demo': False} for record in fertilizer.select_related('field_id').order_by('-fer_time')[:5]]
+        else:
+            return Response(envelope({}, '当前工作角色无效', 403), status=403)
+        return Response(envelope({'role': role, 'metrics': metrics, 'recent': recent}))
 
 
 class HarvestBatchView(SecureAPIView):
