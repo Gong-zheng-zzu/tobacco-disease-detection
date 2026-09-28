@@ -93,7 +93,13 @@ export default {
           left: 'center',
           textStyle: { fontSize: 16, color: '#2d5a3d', fontWeight: 600 }
         },
-        tooltip: { trigger: 'axis' },
+        tooltip: {
+          trigger: 'axis',
+          formatter: (params) => {
+            const rows = params.map(item => `${item.marker}${item.seriesName}：${item.value} kg${item.data?.demo ? '（演示参考）' : ''}`);
+            return `${params[0]?.axisValue || ''}<br>${rows.join('<br>')}`;
+          }
+        },
         legend: { data: ['氮肥', '磷肥', '钾肥'], bottom: 0, textStyle: { color: '#2d5a3d' }, selectedMode: false },
         grid: { left: '8%', right: '8%', bottom: '18%', top: '18%', containLabel: true },
         xAxis: {
@@ -157,15 +163,19 @@ export default {
         const recorded = stageNames.map((_, index) => index).filter(index =>
           byStage.N[index] + byStage.P[index] + byStage.K[index] > 0
         );
+        const demoValues = { N: [28, 24, 30, 36, 31], P: [30, 22, 27, 33, 29], K: [58, 52, 64, 72, 66] };
+        const makeSeries = nutrient => byStage[nutrient].map((value, index) => (
+          value > 0 ? value : { value: demoValues[nutrient][index], demo: true, itemStyle: { opacity: 0.28 } }
+        ));
         this.stageCoverage = recorded.length
-          ? `已登记阶段：${recorded.map(index => stageNames[index]).join('、')}；其他阶段暂无基肥记录。`
-          : '当前地块暂无基肥记录。';
+          ? `已登记阶段：${recorded.map(index => stageNames[index]).join('、')}；浅色柱为演示参考，不计入真实记录。`
+          : '当前地块暂无基肥记录，图中显示演示参考数据。';
         this.chartInstance?.setOption({
           xAxis: { data: stageNames },
           series: [
-            { name: '氮肥', data: byStage.N },
-            { name: '磷肥', data: byStage.P },
-            { name: '钾肥', data: byStage.K }
+            { name: '氮肥', data: makeSeries('N') },
+            { name: '磷肥', data: makeSeries('P') },
+            { name: '钾肥', data: makeSeries('K') }
           ]
         });
         this.updateDate = ferDate || '--';
