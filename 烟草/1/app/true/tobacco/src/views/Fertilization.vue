@@ -157,6 +157,7 @@
 import axios from 'axios';
 import { API_BASE } from '@/config/api';
 import PesticidePanel from '@/components/PesticidePanel.vue';
+import { notify } from '@/utils/notify';
 
 export default {
   components: { PesticidePanel },
@@ -290,11 +291,11 @@ export default {
       const name = (this.newFieldForm.name || '').trim();
       const area = Number(this.newFieldForm.area);
       if (!name) {
-        alert('请输入地块名称');
+        notify('请输入地块名称');
         return;
       }
       if (!Number.isFinite(area) || area <= 0) {
-        alert('请输入有效面积');
+        notify('请输入有效面积');
         return;
       }
 
@@ -313,16 +314,16 @@ export default {
           this.selectedFieldId = createdFieldId;
           await this.onFieldSelectChange();
         }
-        alert('地块新增成功');
+        notify('地块新增成功', 'success');
       } catch (err) {
         console.error('新增地块失败', err);
-        alert(err.response?.data?.msg || '新增地块失败，请重试');
+        notify(err.response?.data?.msg || '新增地块失败，请重试');
       }
     },
     async submitCreate() {
       const fieldId = this.getFieldId();
       if (!fieldId) {
-        alert('请先添加地块');
+        notify('请先添加地块');
         return;
       }
       this.showCreateModal = false;
@@ -339,7 +340,7 @@ export default {
         await this.fetchRecords();
       } catch (err) {
         console.error('创建失败', err);
-        alert(err.response?.data?.msg || '创建失败，请重试');
+        notify(err.response?.data?.msg || '创建失败，请重试');
       }
     },
     async deleteRecord(record) {
@@ -354,7 +355,7 @@ export default {
         this.fetchRecords();
       } catch (error) {
         console.error('删除记录失败', error);
-        alert('删除记录失败，请重试');
+        notify('删除记录失败，请重试');
       }
     },
     formatKg(value) {
@@ -666,4 +667,15 @@ export default {
     padding: 12px;
   }
 }
+.work-card{border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:var(--shadow-soft)}
+.record-cards-wrap{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);overflow:hidden;padding:0;margin:0}
+.record-list-heading{padding:10px 16px;background:#fafbfa;border-bottom:1px solid #edf0ed;color:var(--color-muted);font-size:12px;font-weight:500}
+.record-item-card,.record-item-card:last-child{min-height:44px;margin:0;padding:12px 16px;border-bottom:1px solid #f0f1f0;border-radius:0;box-shadow:none;transition:background-color .15s}
+.record-item-card:last-child{border-bottom:0}
+.record-item-card:hover{background:#f9fbf9}
+.record-item-main{font-variant-numeric:tabular-nums}
+.record-empty{background:#fff;color:var(--color-muted)}
+.btn-green,.btn-confirm,.tab-btn.active{background:var(--color-primary)}
+.btn-green:hover:not(:disabled),.btn-confirm:hover{background:var(--color-primary-hover)}
+.btn-green-outline{background:#fff;color:var(--color-primary);border-color:var(--color-primary)}
 </style>

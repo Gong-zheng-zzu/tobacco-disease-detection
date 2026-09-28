@@ -179,6 +179,7 @@ import droneIcon from '@/assets/icons/sensor_icon/drone-icon.png';
 import sensorIcon from '@/assets/icons/sensor_icon/sensor-icon.png';
 import actuatorIcon from '@/assets/icons/sensor_icon/actuator-icon.png';
 import { API_BASE } from '@/config/api';
+import { notify } from '@/utils/notify';
 
 export default {
   data() {
@@ -278,7 +279,7 @@ export default {
         this.editModalVisible = false;
         this.fetchDevices();
       } catch (e) {
-        alert(e.response?.data?.msg || '修改失败');
+        notify(e.response?.data?.msg || '修改失败');
       }
     },
     async toggleStatus(device) {
@@ -287,7 +288,7 @@ export default {
         await axios.put(`${this.apiBase}/user/${this.userId}/devices/${device.id}/`, { status: newStatus });
         device.status = newStatus;
       } catch (e) {
-        alert(e.response?.data?.msg || '状态切换失败');
+        notify(e.response?.data?.msg || '状态切换失败');
       }
     },
     deleteDevice(device) {
@@ -302,7 +303,7 @@ export default {
         this.deviceToDelete = null;
         this.fetchDevices();
       } catch (e) {
-        alert(e.response?.data?.msg || '删除失败');
+        notify(e.response?.data?.msg || '删除失败');
       }
     },
     openAddModal() {
@@ -311,7 +312,7 @@ export default {
     },
     async submitAdd() {
       if (!this.addForm.name.trim()) {
-        alert('请输入设备名称');
+        notify('请输入设备名称');
         return;
       }
       const payload = { name: this.addForm.name.trim(), type: this.addForm.type };
@@ -321,7 +322,7 @@ export default {
         this.addModalVisible = false;
         this.fetchDevices();
       } catch (e) {
-        alert(e.response?.data?.msg || e.response?.data?.errors || '创建失败');
+        notify(e.response?.data?.msg || e.response?.data?.errors || '创建失败');
       }
     },
     getDeviceIcon(type) {

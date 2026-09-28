@@ -1,6 +1,7 @@
 <template>
   <div id="app" :class="{ 'workspace-shell': $route.path === '/workspaces' }">
     <Nav v-if="showNav" />
+    <ToastHost />
     <div class="main-content" :class="{ 'no-nav': !showNav }">
       <router-view />
     </div>
@@ -9,9 +10,10 @@
 
 <script>
 import Nav from '@/components/Nav.vue';
+import ToastHost from '@/components/ToastHost.vue';
 
 export default {
-  components: { Nav },
+  components: { Nav, ToastHost },
   computed: {
     showNav() {
       return !['/login', '/register', '/workspaces'].includes(this.$route.path);
@@ -24,7 +26,7 @@ export default {
 #app {
   position: relative;
   min-height: 100vh;
-  background: linear-gradient(180deg, #e8f5e9 0%, #f1f8e9 100%);
+  background: var(--color-page);
 }
 
 #app.workspace-shell {
@@ -36,9 +38,9 @@ export default {
 }
 
 .main-content {
-  margin-top: 64px;
+  margin-top: var(--header-h);
   padding: 10px 10px calc(64px + env(safe-area-inset-bottom, 0px));
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - var(--header-h));
   background-color: transparent;
   box-sizing: border-box;
 }
@@ -50,7 +52,7 @@ export default {
 
 @media (min-width: 1024px) {
   .main-content {
-    margin-top: 64px;
+    margin-top: var(--header-h);
     padding: 14px 16px calc(72px + env(safe-area-inset-bottom, 0px));
   }
 }

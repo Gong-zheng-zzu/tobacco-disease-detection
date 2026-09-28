@@ -10,4 +10,7 @@ export default {data(){return {brandLogo,username:localStorage.getItem('username
 </script>
 <style scoped>
 .top-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:linear-gradient(100deg,#1d8f62,#2cb478);position:fixed;top:0;left:0;right:0;z-index:100;color:#fff}.brand,.user-actions{display:flex;align-items:center;gap:8px}.logo{width:32px;height:32px}.title{font-size:17px;font-weight:700}.role-label{font-size:11px;opacity:.8}select,button{font:inherit}select{max-width:110px;background:#fff;color:#234d38;border-radius:6px;padding:4px}.user-actions button{border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:6px;padding:5px 10px}.bottom-tab{position:fixed;left:0;right:0;bottom:0;min-height:56px;padding:6px;background:#fff;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;border-top:1px solid #dfebe3;z-index:1000}.bottom-tab button{border:0;background:transparent;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#6d8578;font-size:10px}.bottom-tab button.active{background:#e9f7ef;color:#1f8758;font-weight:700}.tab-icon{width:19px;height:19px}@media(min-width:980px){.bottom-tab{max-width:740px;left:50%;right:auto;width:740px;transform:translateX(-50%);border-radius:14px 14px 0 0}}
+.top-bar{height:var(--header-h);padding:0 14px;background:var(--color-primary)}
+.bottom-tab{border-color:var(--color-border);box-shadow:var(--shadow-soft)}
+.bottom-tab button.active{background:#e9f2eb;color:var(--color-primary)}
 </style>

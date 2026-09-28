@@ -72,6 +72,7 @@
 <script>
 import axios from 'axios';
 import { API_BASE } from '@/config/api';
+import { notify } from '@/utils/notify';
 
 const MU_M2 = 2000 / 3;
 const DISEASE_CONFIG = {
@@ -164,17 +165,17 @@ export default {
     async submitCreate() {
       const fieldId = this.getFieldId();
       if (!fieldId) {
-        alert('请先选择地块');
+        notify('请先选择地块');
         return;
       }
       const diseaseType = this.newRecord.diseaseType;
       if (!diseaseType || !DISEASE_CONFIG[diseaseType]) {
-        alert('请选择病害种类');
+        notify('请选择病害种类');
         return;
       }
       const area = this.getCurrentFieldArea();
       if (!area || area <= 0) {
-        alert('当前地块面积无效，无法计算用量');
+        notify('当前地块面积无效，无法计算用量');
         return;
       }
       const config = DISEASE_CONFIG[diseaseType];
@@ -198,7 +199,7 @@ export default {
         await this.fetchRecords();
       } catch (err) {
         console.error('创建失败', err);
-        alert(err.response?.data?.msg || '创建失败，请重试');
+        notify(err.response?.data?.msg || '创建失败，请重试');
       }
     },
     async deleteRecord(record) {
@@ -212,7 +213,7 @@ export default {
         await this.fetchRecords();
       } catch (error) {
         console.error('删除记录失败', error);
-        alert('删除记录失败，请重试');
+        notify('删除记录失败，请重试');
       }
     }
   },
@@ -463,4 +464,13 @@ export default {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.record-cards-wrap{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);overflow:hidden;padding:0;margin:0}
+.record-list-heading{padding:10px 16px;background:#fafbfa;border-bottom:1px solid #edf0ed;color:var(--color-muted);font-size:12px;font-weight:500}
+.record-item-card,.record-item-card:last-child{min-height:44px;margin:0;padding:12px 16px;border-bottom:1px solid #f0f1f0;border-radius:0;box-shadow:none;transition:background-color .15s}
+.record-item-card:last-child{border-bottom:0}
+.record-item-card:hover{background:#f9fbf9}
+.record-item-main{font-variant-numeric:tabular-nums}
+.record-empty{background:#fff;color:var(--color-muted)}
+.btn-green,.btn-confirm{background:var(--color-primary)}
+.btn-green:hover:not(:disabled),.btn-confirm:hover{background:var(--color-primary-hover)}
 </style>
