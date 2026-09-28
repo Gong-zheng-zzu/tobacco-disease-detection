@@ -98,7 +98,7 @@ export default {
         grid: { left: '8%', right: '8%', bottom: '18%', top: '18%', containLabel: true },
         xAxis: {
           type: 'category',
-          data: ['暂无记录'],
+          data: ['苗期', '还苗期', '伸根期', '旺长期', '成熟期'],
           axisLine: { lineStyle: { color: '#d5ded7' } },
           axisLabel: { color: '#2d5a3d', interval: 0 }
         },
@@ -109,9 +109,9 @@ export default {
           splitLine: { lineStyle: { color: '#e9eeea' } }
         },
         series: [
-          { name: '氮肥', type: 'bar', barMaxWidth: 60, data: [0], itemStyle: { color: '#1f6f4a' } },
-          { name: '磷肥', type: 'bar', barMaxWidth: 60, data: [0], itemStyle: { color: '#5d9c78' } },
-          { name: '钾肥', type: 'bar', barMaxWidth: 60, data: [0], itemStyle: { color: '#b28a3f' } }
+          { name: '氮肥', type: 'bar', barMaxWidth: 60, data: [0, 0, 0, 0, 0], itemStyle: { color: '#1f6f4a' } },
+          { name: '磷肥', type: 'bar', barMaxWidth: 60, data: [0, 0, 0, 0, 0], itemStyle: { color: '#5d9c78' } },
+          { name: '钾肥', type: 'bar', barMaxWidth: 60, data: [0, 0, 0, 0, 0], itemStyle: { color: '#b28a3f' } }
         ]
       };
       this.chartInstance.setOption(option);
@@ -157,16 +157,15 @@ export default {
         const recorded = stageNames.map((_, index) => index).filter(index =>
           byStage.N[index] + byStage.P[index] + byStage.K[index] > 0
         );
-        const visible = recorded.length ? recorded : [0];
         this.stageCoverage = recorded.length
           ? `已登记阶段：${recorded.map(index => stageNames[index]).join('、')}；其他阶段暂无基肥记录。`
           : '当前地块暂无基肥记录。';
         this.chartInstance?.setOption({
-          xAxis: { data: recorded.length ? visible.map(index => stageNames[index]) : ['暂无记录'] },
+          xAxis: { data: stageNames },
           series: [
-            { name: '氮肥', data: visible.map(index => byStage.N[index]) },
-            { name: '磷肥', data: visible.map(index => byStage.P[index]) },
-            { name: '钾肥', data: visible.map(index => byStage.K[index]) }
+            { name: '氮肥', data: byStage.N },
+            { name: '磷肥', data: byStage.P },
+            { name: '钾肥', data: byStage.K }
           ]
         });
         this.updateDate = ferDate || '--';
