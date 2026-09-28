@@ -544,6 +544,7 @@ export default {
   gap: 8px;
   border: 1px solid #ddefe3;
   border-left: 3px solid #1f6f4a;
+  min-height: 132px;
 }
 
 .device-item.offline {
@@ -590,7 +591,9 @@ export default {
   grid-area: actions;
   display: flex;
   gap: 8px;
+  align-items: center;
 }
+.device-actions .button { min-width: 60px; min-height: 38px; box-sizing: border-box; }
 
 .green {
   background-color: #1f6f4a;
@@ -608,7 +611,6 @@ export default {
   background-color: #fff;
   border: 1px solid #e7cccc;
   color: #a44848;
-  color: white;
   padding: 8px 12px;
   border-radius: 8px;
   transition: background-color 0.3s;
@@ -625,6 +627,8 @@ export default {
   gap: 8px;
   font-size: 12px;
   color: #587a6b;
+  justify-content: flex-end;
+  padding-top: 4px;
 }
 
 .switch {
@@ -767,7 +771,8 @@ export default {
     grid-template-columns: 40px 1fr auto;
     grid-template-areas:
       "icon detail status"
-      "icon actions actions";
+      "icon actions status";
+    align-items: start;
   }
 }
 @media (max-width: 640px) { .sensor-container { grid-template-columns: 1fr 1fr 1fr; } .sensor-item { padding: 10px; } .sensor-value { font-size: 21px; } }
