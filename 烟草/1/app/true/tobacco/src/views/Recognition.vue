@@ -616,14 +616,14 @@ export default {
 @media (min-width: 1024px) {
   .camera-wrap {
     display: grid;
-    grid-template-columns: minmax(300px, 420px) minmax(300px, 520px);
+    grid-template-columns: minmax(420px, 560px) minmax(360px, 1fr);
     grid-template-areas: "preview result" "actions result";
     align-items: start;
     justify-content: center;
     column-gap: 32px;
   }
-  .camera-box { grid-area: preview; }
-  .camera-actions { grid-area: actions; }
+  .camera-box { grid-area: preview; max-width: 560px; }
+  .camera-actions { grid-area: actions; max-width: 560px; }
   .result-area {
     grid-area: result;
     max-width: none;
