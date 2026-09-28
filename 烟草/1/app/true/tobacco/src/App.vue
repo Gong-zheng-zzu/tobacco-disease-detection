@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" :class="{ 'workspace-shell': $route.path === '/workspaces' }">
     <Nav v-if="showNav" />
     <div class="main-content" :class="{ 'no-nav': !showNav }">
       <router-view />
@@ -25,6 +25,14 @@ export default {
   position: relative;
   min-height: 100vh;
   background: linear-gradient(180deg, #e8f5e9 0%, #f1f8e9 100%);
+}
+
+#app.workspace-shell {
+  background: #f6f8f5;
+}
+
+.workspace-shell .main-content.no-nav {
+  padding: 0;
 }
 
 .main-content {

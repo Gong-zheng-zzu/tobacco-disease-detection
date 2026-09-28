@@ -1,7 +1,7 @@
 plugins { id 'com.android.application' }
 
 android { namespace 'io.yqhh.app'; compileSdk 35
-    defaultConfig { applicationId 'io.yqhh.app'; minSdk 26; targetSdk 28; versionCode 107; versionName '1.0.7' }
+    defaultConfig { applicationId 'io.yqhh.app'; minSdk 26; targetSdk 28; versionCode 108; versionName '1.0.8' }
 }
 
 dependencies {
