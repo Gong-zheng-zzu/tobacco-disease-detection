@@ -357,6 +357,8 @@ export default {
   box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
 }
 
+.right-section { overflow: hidden; }
+
 .left-section {
   background: #fff;
   color: #263b30;
@@ -522,6 +524,8 @@ export default {
 .device-list {
   flex: 1 1 auto;
   min-height: 120px;
+  overflow-y: auto;
+  padding-right: 4px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -751,6 +755,8 @@ export default {
     padding: 10px;
     height: auto;
   }
+
+  .right-section { height: 620px; max-height: calc(100vh - 150px); }
 
   .alarm-info {
     grid-template-columns: auto 1fr;
