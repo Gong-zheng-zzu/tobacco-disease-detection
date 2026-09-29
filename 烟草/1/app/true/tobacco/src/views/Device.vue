@@ -44,8 +44,8 @@
     <!-- 右侧设备状态区域 -->
     <div class="right-section">
       <div class="alarm-info">
+        <div><h2>设备档案</h2><p>设备状态来自档案；环境数据尚未接入自动采集。</p></div>
         <button class="btn-add" @click="openAddModal">+ 新建设备</button>
-        <span>状态来自设备档案；实时环境数据尚无采集记录</span>
       </div>
       <div class="device-list">
         <p v-if="deviceError" class="device-feedback">{{ deviceError }} <button type="button" @click="fetchDevices">重试</button></p>
@@ -62,22 +62,23 @@
             class="device-icon"
           >
           <div class="device-details">
-            <div class="device-id">ID:{{ device.id }} {{ device.status }}</div>
             <div class="device-name">{{ device.name }}</div>
-            <div class="device-type">类型: {{ device.type }}</div>
-            <div class="device-field">所属: {{ getFieldName(device.field_id) }}</div>
+            <div class="device-meta"><span>编号 {{ device.id }}</span><span>{{ device.type }}</span><span>{{ getFieldName(device.field_id) }}</span></div>
           </div>
           <div class="device-actions">
             <button class="button green" @click="editDevice(device)">修改</button>
             <button class="button red" @click="deleteDevice(device)">删除</button>
           </div>
           <div class="device-status">
-            <span>状态:</span>
-            <span
+            <span :class="device.status === '在线' ? 'status-online' : 'status-offline'">{{ device.status }}</span>
+            <button type="button"
               class="switch"
               :class="{ 'on': device.status === '在线', 'off': device.status === '离线' }"
+              role="switch"
+              :aria-label="`切换 ${device.name} 状态`"
+              :aria-checked="device.status === '在线'"
               @click="toggleStatus(device)"
-            ></span>
+            ></button>
           </div>
         </div>
       </div>
@@ -337,8 +338,8 @@ export default {
 .device-management-page {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
-  padding: 6px;
+  gap: 14px;
+  padding: 10px;
   height: auto;
   box-sizing: border-box;
   overflow: visible;
@@ -346,8 +347,8 @@ export default {
 
 .left-section,
 .right-section {
-  padding: 12px;
-  border-radius: 14px;
+  padding: 18px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -357,7 +358,7 @@ export default {
   box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
 }
 
-.right-section { overflow: hidden; }
+.right-section { overflow: visible; }
 
 .left-section {
   background: #fff;
@@ -494,17 +495,15 @@ export default {
 }
 
 .alarm-info {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  margin-bottom: 10px;
-  background-color: #f5f7f5;
-  border: 1px solid #d7efdf;
-  color: #2c6b48;
-  padding: 10px;
-  border-radius: 10px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e8eee9;
 }
+.alarm-info h2 { margin: 0 0 4px; color: #244334; font-size: 16px; font-weight: 600; }
+.alarm-info p { margin: 0; color: #6b7d70; font-size: 13px; line-height: 1.5; }
 
 .btn-add {
   padding: 9px 14px;
@@ -514,7 +513,8 @@ export default {
   border-radius: 10px;
   cursor: pointer;
   font-size: 13px;
-  justify-self: start;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-add:hover {
@@ -522,29 +522,27 @@ export default {
 }
 
 .device-list {
-  flex: 1 1 auto;
   min-height: 120px;
-  overflow-y: auto;
-  padding-right: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  align-items: stretch;
+  gap: 12px;
 }
 
 .device-item {
   background-color: #fff;
-  padding: 10px;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: 8px;
   display: grid;
-  grid-template-columns: 36px 1fr;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   grid-template-areas:
-    "icon detail"
-    "status status"
-    "actions actions";
-  gap: 8px;
+    "icon detail status"
+    "actions actions actions";
+  align-content: space-between;
+  gap: 12px;
   border: 1px solid #ddefe3;
   border-left: 3px solid #1f6f4a;
-  min-height: 132px;
+  min-height: 148px;
 }
 
 .device-item.offline {
@@ -563,35 +561,25 @@ export default {
   grid-area: detail;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.device-id {
-  font-size: 13px;
-  font-weight: 700;
-  color: #22764e;
+  gap: 7px;
+  min-width: 0;
 }
 
 .device-name {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
-
-.device-field {
-  font-size: 12px;
-  color: #6f8a7d;
-}
-
-.device-type {
-  font-size: 12px;
-  color: #6f8a7d;
-}
+.device-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: #6f8a7d; font-size: 12px; line-height: 1.4; }
 
 .device-actions {
   grid-area: actions;
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid #eef1ee;
 }
 .device-actions .button { min-width: 60px; min-height: 38px; box-sizing: border-box; }
 
@@ -628,8 +616,11 @@ export default {
   font-size: 12px;
   color: #587a6b;
   justify-content: flex-end;
-  padding-top: 4px;
+  align-self: start;
+  white-space: nowrap;
 }
+.status-online { color: #1f6f4a; }
+.status-offline { color: #8c5555; }
 
 .switch {
   width: 34px;
@@ -638,6 +629,8 @@ export default {
   cursor: pointer;
   position: relative;
   border: 1px solid #acc5b8;
+  flex: 0 0 34px;
+  padding: 0;
 }
 
 .switch::before {
@@ -752,28 +745,10 @@ export default {
 .device-feedback { margin: 0; padding: 24px 10px; color: #6b7d70; text-align: center; font-size: 14px; }
 .device-feedback button { margin-left: 8px; color: #1f6f4a; background: transparent; border: 0; text-decoration: underline; }
 
-@media (min-width: 980px) {
-  .device-management-page {
-    grid-template-columns: 0.95fr 1.05fr;
-    gap: 14px;
-    padding: 10px;
-    height: auto;
-  }
-
-  .right-section { height: 620px; max-height: calc(100vh - 150px); }
-
-  .alarm-info {
-    grid-template-columns: auto 1fr;
-    align-items: center;
-  }
-
-  .device-item {
-    grid-template-columns: 40px 1fr auto;
-    grid-template-areas:
-      "icon detail status"
-      "icon actions status";
-    align-items: start;
-  }
+@media (max-width: 640px) {
+  .sensor-container { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sensor-item { padding: 10px; }
+  .sensor-value { font-size: 21px; }
+  .alarm-info { align-items: flex-start; flex-direction: column; }
 }
-@media (max-width: 640px) { .sensor-container { grid-template-columns: 1fr 1fr 1fr; } .sensor-item { padding: 10px; } .sensor-value { font-size: 21px; } }
 </style>

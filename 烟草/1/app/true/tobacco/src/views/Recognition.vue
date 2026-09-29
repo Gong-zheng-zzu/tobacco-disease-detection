@@ -14,11 +14,12 @@
       </div>
 
       <div class="demo-samples">
-        <div class="demo-title">演示样本（点击即可识别）</div>
+        <div class="demo-title">{{ isPlantProtection ? '病虫害演示样本' : '缺素症状参考' }}</div>
         <button v-for="sample in demoSamples" :key="sample.name" class="demo-sample" type="button" @click="useDemoSample(sample)">
           <img :src="sample.src" :alt="sample.label">
-          <span>{{ sample.label }}</span>
+          <span>{{ sample.label }}<small v-if="sample.referenceOnly">示意参考</small></span>
         </button>
+        <p v-if="!isPlantProtection" class="demo-note">缺氮、缺磷为症状示意，不生成模型结论；缺钾照片可直接识别。</p>
       </div>
 
       <div v-if="uploadError && !displayImageUrl" class="field-error-msg">{{ uploadError }}</div>
@@ -37,7 +38,7 @@
         <div class="result-area">
           <div class="result-heading">识别结果</div>
           <div v-if="!displayImageUrl && !uploadError" class="result-empty">选择演示样本，或上传叶片照片开始识别</div>
-          <div v-if="displayImageUrl" class="result-label" :class="{ 'label-healthy': recognitionResult === '图片提示：健康', 'label-loading': recognitionResult === '识别中...', 'label-disease': recognitionResult && recognitionResult.startsWith('图片提示：'), 'label-error': uploadError }">
+          <div v-if="displayImageUrl" class="result-label" :class="{ 'label-healthy': recognitionResult === '图片提示：健康', 'label-loading': recognitionResult === '识别中...', 'label-disease': recognitionResult && recognitionResult.startsWith('图片提示：'), 'label-reference': recognitionResult && recognitionResult.includes('症状示意'), 'label-error': uploadError }">
             <template v-if="recognitionResult">{{ recognitionResult }}</template>
             <template v-else-if="uploadError">{{ uploadError }}</template>
           </div>
@@ -106,7 +107,10 @@ import { API_BASE } from '@/config/api';
 export default {
   name: 'RecognitionPage',
   computed: {
-    isPlantProtection() { return localStorage.getItem('activeRole') === 'plant_protection'; }
+    isPlantProtection() { return localStorage.getItem('activeRole') === 'plant_protection'; },
+    demoSamples() {
+      return this.isPlantProtection ? this.diseaseSamples : this.nutrientSamples;
+    }
   },
   data() {
     return {
@@ -128,7 +132,14 @@ export default {
       verificationAcknowledged: false,
       confirmBusy: false,
       confirmationMessage: '',
-      demoSamples: [
+      nutrientSamples: [
+        { name: 'nitrogen-reference', label: '缺氮', src: './demo-images/nitrogen-reference.svg', referenceOnly: true,
+          advice: '老叶整体失绿、植株生长缓慢可能与缺氮有关；请结合土壤或叶片检测确认。' },
+        { name: 'phosphorus-reference', label: '缺磷', src: './demo-images/phosphorus-reference.svg', referenceOnly: true,
+          advice: '叶色暗绿、部分叶缘紫红可能与缺磷有关；请结合检测报告或专家复核。' },
+        { name: 'potassium-demo', label: '缺钾', src: './demo-images/potassium_demo.jpg' }
+      ],
+      diseaseSamples: [
         { name: 'white_spot_1', label: '白星病', src: './demo-images/white_spot_1.jpg' },
         { name: 'mosaic_1', label: '花叶病', src: './demo-images/mosaic_1.jpg' },
         { name: 'wildfire_1', label: '野火病', src: './demo-images/wildfire_1.jpg' },
@@ -331,11 +342,20 @@ export default {
       reader.readAsDataURL(file);
     },
     async useDemoSample(sample) {
-      if (!this.selectedFieldId) {
-        this.uploadError = '请先选择地块';
-        return;
-      }
       try {
+        if (sample.referenceOnly) {
+          this.stopCamera();
+          this.displayImageUrl = sample.src;
+          this.uploadError = '';
+          this.clearResultDetails();
+          this.recognitionResult = `${sample.label}症状示意（非模型识别）`;
+          this.resultAdvice = sample.advice;
+          return;
+        }
+        if (!this.selectedFieldId) {
+          this.uploadError = '请先选择地块';
+          return;
+        }
         const response = await fetch(sample.src);
         if (!response.ok) throw new Error('演示样本不可用');
         const blob = await response.blob();
@@ -465,6 +485,9 @@ export default {
   font-size: 13px;
   font-weight: 700;
 }
+.demo-note { width: 100%; margin: 0; color: #63776a; font-size: 12px; line-height: 1.5; }
+.demo-sample small { display: block; margin-top: 2px; color: #728579; font-size: 10px; font-weight: 400; }
+.label-reference { background: #f3f6f1; color: #355341; }
 
 .demo-sample {
   display: flex;

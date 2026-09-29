@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-label="缺磷症状示意图">
+  <rect width="240" height="180" fill="#f3f6f1"/>
+  <path d="M27 124C43 55 100 28 208 44c-7 67-53 108-132 106-21 0-38-9-49-26Z" fill="#526d48" stroke="#354c42" stroke-width="3"/>
+  <path d="M27 124c57-21 112-44 181-80" fill="none" stroke="#a0ad78" stroke-width="4"/>
+  <path d="M42 128c21 12 40 19 63 20m79-90c-7 30-16 54-40 71" fill="none" stroke="#806077" stroke-width="17" opacity=".7"/>
+  <path d="M76 107 59 72m45 25-4-46m32 35 18-40m-29 62 5 29" fill="none" stroke="#8e9c73" stroke-width="2"/>
+  <path d="M28 124 9 151" fill="none" stroke="#354c42" stroke-width="6" stroke-linecap="round"/>
+</svg>

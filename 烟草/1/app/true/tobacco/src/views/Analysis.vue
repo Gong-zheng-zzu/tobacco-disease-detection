@@ -48,7 +48,7 @@
       <!-- 缺素变化图：自定义图例点击控制折线显隐 -->
       <div class="chart-container">
         <div id="deficiency-chart"></div>
-        <p class="chart-note">按识别记录日期统计；曲线仅连接实际记录，不代表连续监测。</p>
+        <p class="chart-note">按实际记录日期累计；曲线为趋势展示，不代表连续监测。</p>
         <div class="chart-legend-custom">
           <span
             v-for="(name, i) in legendItems"
@@ -338,11 +338,15 @@ export default {
           else if (d.nutrient_type === 'K') byDate[key].K++;
         });
         const sorted = Object.keys(byDate).sort();
+        const cumulative = { N: 0, P: 0, K: 0 };
         sorted.forEach(k => {
           dates.push(k);
-          nitrogenData.push(byDate[k].N);
-          phosphorusData.push(byDate[k].P);
-          potassiumData.push(byDate[k].K);
+          cumulative.N += byDate[k].N;
+          cumulative.P += byDate[k].P;
+          cumulative.K += byDate[k].K;
+          nitrogenData.push(cumulative.N);
+          phosphorusData.push(cumulative.P);
+          potassiumData.push(cumulative.K);
         });
         if (!dates.length) {
           dates = ['暂无'];
@@ -371,9 +375,9 @@ export default {
         animationEasing: 'cubicOut',
         animationDurationUpdate: 350,
         animationEasingUpdate: 'linear',
-        title: { text: '缺素情况变化图', left: 'center', textStyle: { fontSize: 18, color: '#24372b', fontWeight: 600 }, padding: [8, 0] },
+        title: { text: '缺素记录累计趋势', left: 'center', textStyle: { fontSize: 18, color: '#24372b', fontWeight: 600 }, padding: [8, 0] },
         backgroundColor: '#ffffff',
-        tooltip: { trigger: 'item', backgroundColor: 'rgba(0, 0, 0, 0.85)', borderColor: '#333', textStyle: { color: '#fff', fontSize: 12 }, formatter: '{b}<br/>{a}: {c} 条' },
+        tooltip: { trigger: 'item', backgroundColor: 'rgba(0, 0, 0, 0.85)', borderColor: '#333', textStyle: { color: '#fff', fontSize: 12 }, formatter: '{b}<br/>{a}: 累计 {c} 条' },
         legend: { show: false },
         grid: { left: '8%', right: '5%', bottom: '8%', top: '12%', containLabel: true },
         xAxis: {
@@ -416,7 +420,9 @@ export default {
             showSymbol: visible,
             symbol: 'circle',
             symbolSize: 6,
-            smooth: false,
+            smooth: 0.35,
+            smoothMonotone: 'x',
+            areaStyle: { color: SERIES_COLORS[i], opacity: 0.045 },
             lineStyle: { color: SERIES_COLORS[i], width: 2.5, opacity: visible ? 1 : 0 },
             itemStyle: { color: SERIES_COLORS[i], borderColor: '#ffffff', borderWidth: 1.5 },
             label: { show: false },

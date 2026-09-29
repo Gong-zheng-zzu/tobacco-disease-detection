@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-label="缺氮症状示意图">
+  <rect width="240" height="180" fill="#f3f6f1"/>
+  <path d="M27 124C43 55 100 28 208 44c-7 67-53 108-132 106-21 0-38-9-49-26Z" fill="#d8c970" stroke="#557747" stroke-width="3"/>
+  <path d="M27 124c57-21 112-44 181-80" fill="none" stroke="#64854e" stroke-width="4"/>
+  <path d="M72 107 60 69m43 27-2-48m31 35 18-40m-32 63 4 34m37-48 19 22" fill="none" stroke="#8ea359" stroke-width="2"/>
+  <path d="M28 124 9 151" fill="none" stroke="#557747" stroke-width="6" stroke-linecap="round"/>
+</svg>

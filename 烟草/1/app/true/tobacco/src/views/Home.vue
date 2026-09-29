@@ -89,7 +89,7 @@ export default {
       this.chartInstance = markRaw(echarts.init(el));
       const option = {
         title: {
-          text: '各生育期已登记基肥用量',
+          text: '各生育期施肥趋势',
           left: 'center',
           textStyle: { fontSize: 16, color: '#2d5a3d', fontWeight: 600 }
         },
@@ -115,9 +115,9 @@ export default {
           splitLine: { lineStyle: { color: '#e9eeea' } }
         },
         series: [
-          { name: '氮肥', type: 'bar', barMaxWidth: 60, data: [0, 0, 0, 0, 0], itemStyle: { color: '#1f6f4a' } },
-          { name: '磷肥', type: 'bar', barMaxWidth: 60, data: [0, 0, 0, 0, 0], itemStyle: { color: '#5d9c78' } },
-          { name: '钾肥', type: 'bar', barMaxWidth: 60, data: [0, 0, 0, 0, 0], itemStyle: { color: '#b28a3f' } }
+          { name: '氮肥', type: 'line', smooth: 0.35, smoothMonotone: 'x', symbolSize: 7, data: [0, 0, 0, 0, 0], lineStyle: { width: 3 }, itemStyle: { color: '#1f6f4a' } },
+          { name: '磷肥', type: 'line', smooth: 0.35, smoothMonotone: 'x', symbolSize: 7, data: [0, 0, 0, 0, 0], lineStyle: { width: 3 }, itemStyle: { color: '#5d9c78' } },
+          { name: '钾肥', type: 'line', smooth: 0.35, smoothMonotone: 'x', symbolSize: 7, data: [0, 0, 0, 0, 0], lineStyle: { width: 3 }, itemStyle: { color: '#b28a3f' } }
         ]
       };
       this.chartInstance.setOption(option);
@@ -168,7 +168,7 @@ export default {
           value > 0 ? value : { value: demoValues[nutrient][index], demo: true, itemStyle: { opacity: 0.28 } }
         ));
         this.stageCoverage = recorded.length
-          ? `已登记阶段：${recorded.map(index => stageNames[index]).join('、')}；浅色柱为演示参考，不计入真实记录。`
+          ? `已登记阶段：${recorded.map(index => stageNames[index]).join('、')}；浅色点为演示参考，不计入真实记录。`
           : '当前地块暂无基肥记录，图中显示演示参考数据。';
         this.chartInstance?.setOption({
           xAxis: { data: stageNames },

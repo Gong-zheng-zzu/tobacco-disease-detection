@@ -38,7 +38,7 @@
 
       <div class="chart-container">
         <div id="disease-chart"></div>
-        <p class="chart-note">按农药/病虫记录日期统计；曲线仅连接实际记录，不代表连续监测。</p>
+        <p class="chart-note">按病虫记录日期累计；曲线为趋势展示，不代表连续监测。</p>
         <div class="chart-legend-custom">
           <span
             v-for="(name, i) in legendItems"
@@ -341,12 +341,17 @@ export default {
           if (mapKey) byDate[key][mapKey]++;
         });
         const sorted = Object.keys(byDate).sort();
+        const cumulative = { baixingbing: 0, huayebing: 0, yanqingchong: 0, yehuobing: 0 };
         sorted.forEach((k) => {
           dates.push(k);
-          baixingbingData.push(byDate[k].baixingbing);
-          huayebingData.push(byDate[k].huayebing);
-          yanqingchongData.push(byDate[k].yanqingchong);
-          yehuobingData.push(byDate[k].yehuobing);
+          cumulative.baixingbing += byDate[k].baixingbing;
+          cumulative.huayebing += byDate[k].huayebing;
+          cumulative.yanqingchong += byDate[k].yanqingchong;
+          cumulative.yehuobing += byDate[k].yehuobing;
+          baixingbingData.push(cumulative.baixingbing);
+          huayebingData.push(cumulative.huayebing);
+          yanqingchongData.push(cumulative.yanqingchong);
+          yehuobingData.push(cumulative.yehuobing);
         });
       }
       if (!dates.length) {
@@ -368,9 +373,9 @@ export default {
         animationEasing: 'cubicOut',
         animationDurationUpdate: 350,
         animationEasingUpdate: 'linear',
-        title: { text: '病害情况变化图', left: 'center', textStyle: { fontSize: 18, color: '#24372b', fontWeight: 600 }, padding: [8, 0] },
+        title: { text: '病害记录累计趋势', left: 'center', textStyle: { fontSize: 18, color: '#24372b', fontWeight: 600 }, padding: [8, 0] },
         backgroundColor: '#ffffff',
-        tooltip: { trigger: 'item', backgroundColor: 'rgba(0, 0, 0, 0.85)', borderColor: '#333', textStyle: { color: '#fff', fontSize: 12 }, formatter: '{b}<br/>{a}: {c} 条' },
+        tooltip: { trigger: 'item', backgroundColor: 'rgba(0, 0, 0, 0.85)', borderColor: '#333', textStyle: { color: '#fff', fontSize: 12 }, formatter: '{b}<br/>{a}: 累计 {c} 条' },
         legend: { show: false },
         grid: { left: '8%', right: '5%', bottom: '8%', top: '12%', containLabel: true },
         xAxis: {
@@ -413,7 +418,9 @@ export default {
             showSymbol: visible,
             symbol: 'circle',
             symbolSize: 6,
-            smooth: false,
+            smooth: 0.35,
+            smoothMonotone: 'x',
+            areaStyle: { color: SERIES_COLORS[i], opacity: 0.045 },
             lineStyle: { color: SERIES_COLORS[i], width: 2.5, opacity: visible ? 1 : 0 },
             itemStyle: { color: SERIES_COLORS[i], borderColor: '#ffffff', borderWidth: 1.5 },
             label: { show: false },
