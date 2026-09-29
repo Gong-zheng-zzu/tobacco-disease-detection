@@ -174,6 +174,7 @@ REST_FRAMEWORK = {
         'register': '5/hour',
         'login': '10/minute',
         'captcha': '30/minute',
+        'email_code': '5/hour',
     },
 }
 
@@ -183,6 +184,16 @@ CACHES = {
         'LOCATION': 'tobacco-auth-cache',
     },
 }
+
+EMAIL_BACKEND = os.getenv('DJANGO_EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.getenv('DJANGO_EMAIL_HOST', 'smtp.qq.com')
+EMAIL_PORT = int(os.getenv('DJANGO_EMAIL_PORT', '465'))
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = os.getenv('DJANGO_EMAIL_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('DJANGO_EMAIL_PASSWORD', '')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_TIMEOUT = 10
 
 
 # Internationalization

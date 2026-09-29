@@ -1,5 +1,5 @@
 from django.urls import path
-from .views.user import RegisteryView, LoginView, UserManage
+from .views.user import RegisteryView, LoginView, UserManage, EmailCodeView
 from .views.land_parcel import CreateLandParcelView, ListLandParcelsView, DeleteLandParcelView
 from .views.fertilizer import FerView
 from .views.pesticide import PesticideView, PesticideFromDiseaseView
@@ -17,6 +17,7 @@ from .views.workflow import WorkspaceSummaryView
 from .views.workflow import HarvestBatchView, CuringBatchView, QualityInspectionView
 urlpatterns = [
     path('auth/captcha/', CaptchaView.as_view(), name='captcha'),
+    path('auth/email-code/', EmailCodeView.as_view(), name='email-code'),
     path('me/', MeView.as_view(), name='me'),
     path('me/active-role/', ActiveRoleView.as_view(), name='active-role'),
     path('workspace/summary/', WorkspaceSummaryView.as_view(), name='workspace-summary'),

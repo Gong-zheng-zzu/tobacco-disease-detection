@@ -5,6 +5,7 @@ class User(models.Model):
     username = models.CharField(max_length=16, unique=True, verbose_name="用户名")
     password = models.CharField(max_length=128, verbose_name="密码")
     phone = models.CharField(max_length=13, unique=True, verbose_name="电话号")
+    email = models.EmailField(max_length=254, unique=True, null=True, blank=True, verbose_name="邮箱")
     token = models.CharField(max_length=64, verbose_name="TOKEN", null=True, blank=True, db_index=True)
     device_count = models.IntegerField(verbose_name="设备数", default=0)
     field_count = models.IntegerField(verbose_name="地块数", default=0)

@@ -1,12 +1,17 @@
 import re
 import uuid
-from secrets import compare_digest
+import hashlib
+import logging
+from secrets import compare_digest, randbelow
 
+from django.conf import settings
 from django.contrib.auth.hashers import check_password, identify_hasher, make_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.core.cache import cache
+from django.core.mail import send_mail
+from django.core.validators import validate_email
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
@@ -14,6 +19,66 @@ from rest_framework.views import APIView
 from ..models import User
 from ..serializer import UserLoginSerializer, UserRegisterSerializer
 from ..security import client_ip, clear_failures, count_failure, is_locked
+
+logger = logging.getLogger(__name__)
+EMAIL_CODE_TTL = 300
+
+
+def email_code_key(email):
+    return 'email-code:' + hashlib.sha256(email.encode('utf-8')).hexdigest()
+
+
+def valid_email(value):
+    if not isinstance(value, str):
+        return None
+    value = value.strip().lower()
+    try:
+        validate_email(value)
+    except ValidationError:
+        return None
+    return value if len(value) <= 254 else None
+
+
+def consume_captcha(data):
+    captcha_id = data.get('captcha_id')
+    captcha_code = str(data.get('captcha_code', '')).strip().upper()
+    key = f'captcha:{captcha_id}'
+    expected = cache.get(key) if captcha_id else None
+    if not expected or not captcha_code or not compare_digest(captcha_code, str(expected).upper()):
+        return False
+    cache.delete(key)
+    return True
+
+
+class EmailCodeThrottle(AnonRateThrottle):
+    scope = 'email_code'
+
+
+class EmailCodeView(APIView):
+    throttle_classes = [EmailCodeThrottle]
+
+    def post(self, request):
+        email = valid_email(request.data.get('email'))
+        if not email:
+            return Response({'msg': '请输入有效邮箱', 'code': 400})
+        if not consume_captcha(request.data):
+            return Response({'msg': '图形验证码错误或已过期', 'code': 400})
+        if User.objects.filter(email=email).exists():
+            return Response({'msg': '该邮箱已注册', 'code': 400})
+        if cache.get('email-cooldown:' + email_code_key(email)):
+            return Response({'msg': '请一分钟后再发送', 'code': 429}, status=429)
+        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+            return Response({'msg': '邮件服务尚未配置，请联系管理员', 'code': 503}, status=503)
+        code = f'{randbelow(1000000):06d}'
+        try:
+            send_mail('叶擎慧航注册验证码', f'您的注册验证码是 {code}，5 分钟内有效。请勿转发。',
+                      settings.DEFAULT_FROM_EMAIL, [email], fail_silently=False)
+        except Exception:
+            logger.exception('Registration email delivery failed')
+            return Response({'msg': '邮件发送失败，请稍后重试', 'code': 503}, status=503)
+        cache.set(email_code_key(email), code, EMAIL_CODE_TTL)
+        cache.set('email-cooldown:' + email_code_key(email), True, 60)
+        return Response({'code': 200, 'msg': '验证码已发送', 'data': {'expires_in': EMAIL_CODE_TTL, 'retry_in': 60}})
 
 
 class RegisterThrottle(AnonRateThrottle):
@@ -32,6 +97,8 @@ class RegisteryView(APIView):
         phone = request.data.get('phone')
         password = request.data.get('password1')
         confirmation = request.data.get('password2')
+        email = valid_email(request.data.get('email'))
+        email_code = str(request.data.get('email_code', '')).strip()
         captcha_id = request.data.get('captcha_id')
         captcha_code = str(request.data.get('captcha_code', '')).strip().upper()
 
@@ -40,6 +107,12 @@ class RegisteryView(APIView):
         if not expected_captcha or not captcha_code or captcha_code != str(expected_captcha).upper():
             return Response({'msg': '验证码错误或已过期', 'code': 400})
         cache.delete(captcha_key)
+
+        if not email:
+            return Response({'msg': '请输入有效邮箱', 'code': 400})
+        expected_email_code = cache.get(email_code_key(email))
+        if not expected_email_code or not re.fullmatch(r'\d{6}', email_code) or not compare_digest(email_code, expected_email_code):
+            return Response({'msg': '邮箱验证码错误或已过期', 'code': 400})
 
         if not isinstance(username, str) or not re.fullmatch(r'[A-Za-z0-9_\u4e00-\u9fff]{3,16}', username):
             return Response({'msg': '用户名须为3至16位中文、字母、数字或下划线', 'code': 400})
@@ -61,9 +134,11 @@ class RegisteryView(APIView):
             return Response({'msg': '该用户已注册', 'code': 400})
         if User.objects.filter(phone=phone).exists():
             return Response({'msg': '该手机号已用于注册', 'code': 400})
+        if User.objects.filter(email=email).exists():
+            return Response({'msg': '该邮箱已注册', 'code': 400})
 
         serializer = UserRegisterSerializer(data={
-            'username': username, 'phone': phone, 'password': make_password(password),
+            'username': username, 'phone': phone, 'email': email, 'password': make_password(password),
         })
         if not serializer.is_valid():
             return Response({'msg': serializer.errors, 'code': 400})
@@ -71,7 +146,8 @@ class RegisteryView(APIView):
             with transaction.atomic():
                 serializer.save()
         except IntegrityError:
-            return Response({'msg': '用户名或手机号已注册', 'code': 400})
+            return Response({'msg': '用户名、手机号或邮箱已注册', 'code': 400})
+        cache.delete(email_code_key(email))
         return Response({'msg': '注册成功', 'code': 200})
 
 

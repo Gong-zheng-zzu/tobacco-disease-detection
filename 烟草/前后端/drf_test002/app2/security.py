@@ -55,7 +55,7 @@ class LegacyTokenAuthentication(BaseAuthentication):
 
 
 class BusinessPermission(BasePermission):
-    PUBLIC = ('/api/auth/captcha/', '/api/login/', '/api/register/', '/api/weather/')
+    PUBLIC = ('/api/auth/captcha/', '/api/auth/email-code/', '/api/login/', '/api/register/', '/api/weather/')
 
     def has_permission(self, request, view):
         path = request.path
